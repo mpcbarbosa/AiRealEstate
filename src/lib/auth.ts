@@ -6,6 +6,7 @@ import bcrypt from 'bcryptjs'
 export const authOptions: NextAuthOptions = {
   session: { strategy: 'jwt' },
   pages: { signIn: '/login' },
+  debug: process.env.NODE_ENV === 'development',
   providers: [
     CredentialsProvider({
       name: 'credentials',
@@ -14,18 +15,35 @@ export const authOptions: NextAuthOptions = {
         password: { label: 'Password', type: 'password' },
       },
       async authorize(credentials) {
-        if (!credentials?.email || !credentials?.password) return null
+        try {
+          console.log('[AUTH] Tentativa de login:', credentials?.email)
 
-        const user = await prisma.user.findUnique({
-          where: { email: credentials.email },
-        })
+          if (!credentials?.email || !credentials?.password) {
+            console.log('[AUTH] Credenciais em falta')
+            return null
+          }
 
-        if (!user || !user.password) return null
+          const user = await prisma.user.findUnique({
+            where: { email: credentials.email },
+          })
 
-        const valid = await bcrypt.compare(credentials.password, user.password)
-        if (!valid) return null
+          console.log('[AUTH] Utilizador encontrado:', !!user)
 
-        return { id: user.id, email: user.email, name: user.name, role: user.role }
+          if (!user || !user.password) {
+            console.log('[AUTH] Utilizador não encontrado ou sem password')
+            return null
+          }
+
+          const valid = await bcrypt.compare(credentials.password, user.password)
+          console.log('[AUTH] Password válida:', valid)
+
+          if (!valid) return null
+
+          return { id: user.id, email: user.email, name: user.name, role: user.role }
+        } catch (err) {
+          console.error('[AUTH] Erro:', err)
+          return null
+        }
       },
     }),
   ],
