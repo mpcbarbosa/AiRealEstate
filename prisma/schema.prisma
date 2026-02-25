@@ -1,0 +1,204 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  password      String?
+  name          String?
+  role          Role      @default(USER)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  apiKeys       ApiKey[]
+  userListings  UserListing[]
+  notes         Note[]
+  tasks         Task[]
+  watchlists    Watchlist[]
+  notifications Notification[]
+  @@map("users")
+}
+
+enum Role { USER ADMIN }
+
+model ApiKey {
+  id          String   @id @default(cuid())
+  key         String   @unique
+  name        String   @default("default")
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+  lastUsedAt  DateTime?
+  active      Boolean  @default(true)
+  @@map("api_keys")
+}
+
+model ListingMaster {
+  id              String          @id @default(cuid())
+  title           String?
+  description     String?
+  businessType    BusinessType?
+  propertyType    PropertyType?
+  typology        String?
+  priceEur        Float?
+  areaM2          Float?
+  locationText    String?
+  lat             Float?
+  lng             Float?
+  features        Json?
+  active          Boolean         @default(true)
+  confidence      Float           @default(1.0)
+  dedupeHash      String?         @unique
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  sources         ListingSource[]
+  history         ListingHistory[]
+  userListings    UserListing[]
+  notes           Note[]
+  tasks           Task[]
+  @@map("listing_masters")
+}
+
+enum BusinessType { buy rent invest }
+enum PropertyType { apartment house land commercial warehouse building other }
+
+model ListingSource {
+  id               String        @id @default(cuid())
+  listingMasterId  String
+  listingMaster    ListingMaster @relation(fields: [listingMasterId], references: [id], onDelete: Cascade)
+  sourceFamily     String?
+  sourceName       String?
+  sourceUrl        String        @unique
+  sourceExternalId String?
+  contacts         Json?
+  images           String[]
+  rawPayload       Json?
+  capturedAt       DateTime?
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+  @@map("listing_sources")
+}
+
+model ListingHistory {
+  id              String        @id @default(cuid())
+  listingMasterId String
+  listingMaster   ListingMaster @relation(fields: [listingMasterId], references: [id], onDelete: Cascade)
+  changeType      ChangeType
+  fieldName       String?
+  oldValue        String?
+  newValue        String?
+  note            String?
+  createdAt       DateTime      @default(now())
+  @@map("listing_history")
+}
+
+enum ChangeType { PRICE_CHANGE STATUS_CHANGE FIELD_UPDATE CREATED DEACTIVATED }
+
+model UserListing {
+  id              String          @id @default(cuid())
+  userId          String
+  user            User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  listingMasterId String
+  listingMaster   ListingMaster   @relation(fields: [listingMasterId], references: [id], onDelete: Cascade)
+  status          PipelineStatus  @default(NONE)
+  favorite        Boolean         @default(false)
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  @@unique([userId, listingMasterId])
+  @@map("user_listings")
+}
+
+enum PipelineStatus { NONE FAVORITE TO_CONTACT CONTACTED NOT_INTERESTED CLOSED }
+
+model Note {
+  id              String        @id @default(cuid())
+  userId          String
+  user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  listingMasterId String
+  listingMaster   ListingMaster @relation(fields: [listingMasterId], references: [id], onDelete: Cascade)
+  content         String
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  @@map("notes")
+}
+
+model Task {
+  id              String        @id @default(cuid())
+  userId          String
+  user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  listingMasterId String
+  listingMaster   ListingMaster @relation(fields: [listingMasterId], references: [id], onDelete: Cascade)
+  title           String
+  done            Boolean       @default(false)
+  dueDate         DateTime?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  @@map("tasks")
+}
+
+model Watchlist {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name        String
+  filtersJson Json
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  notifications Notification[]
+  @@map("watchlists")
+}
+
+model Notification {
+  id              String        @id @default(cuid())
+  userId          String
+  user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  watchlistId     String?
+  watchlist       Watchlist?    @relation(fields: [watchlistId], references: [id])
+  listingMasterId String?
+  type            NotifType
+  message         String
+  read            Boolean       @default(false)
+  createdAt       DateTime      @default(now())
+  @@map("notifications")
+}
+
+enum NotifType { NEW_LISTING PRICE_DROP LISTING_REMOVED }
+
+model IngestRun {
+  id          String       @id @default(cuid())
+  source      String
+  status      IngestStatus @default(PROCESSING)
+  received    Int          @default(0)
+  created     Int          @default(0)
+  updated     Int          @default(0)
+  deduped     Int          @default(0)
+  rejected    Int          @default(0)
+  errors      Json?
+  startedAt   DateTime     @default(now())
+  finishedAt  DateTime?
+  items       IngestItem[]
+  @@map("ingest_runs")
+}
+
+enum IngestStatus { PROCESSING DONE FAILED }
+
+model IngestItem {
+  id            String      @id @default(cuid())
+  ingestRunId   String
+  ingestRun     IngestRun   @relation(fields: [ingestRunId], references: [id], onDelete: Cascade)
+  sourceUrl     String?
+  result        ItemResult
+  reason        String?
+  listingId     String?
+  rawPayload    Json?
+  createdAt     DateTime    @default(now())
+  @@map("ingest_items")
+}
+
+enum ItemResult { CREATED UPDATED DEDUPED REJECTED }
