@@ -2,20 +2,16 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { z } from 'zod'
 
-const schema = z.object({
-  name: z.string().min(1),
-  filtersJson: z.record(z.any()),
-})
-
-export async function GET(req: NextRequest) {
+export async function GET() {
   const session = await getServerSession(authOptions)
   if (!session?.user) return NextResponse.json({ error: 'Não autenticado' }, { status: 401 })
   const userId = (session.user as any).id
+
   const watchlists = await prisma.watchlist.findMany({
-    where: { userId, active: true },
+    where: { userId },
     orderBy: { createdAt: 'desc' },
+    include: { _count: { select: { notifications: true } } },
   })
   return NextResponse.json(watchlists)
 }
@@ -24,23 +20,37 @@ export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions)
   if (!session?.user) return NextResponse.json({ error: 'Não autenticado' }, { status: 401 })
   const userId = (session.user as any).id
-  try {
-    const body = await req.json()
-    const data = schema.parse(body)
-    const wl = await prisma.watchlist.create({ data: { userId, ...data } })
-    return NextResponse.json(wl, { status: 201 })
-  } catch (e: any) {
-    return NextResponse.json({ error: 'Erro' }, { status: 400 })
-  }
+
+  const { name, filtersJson } = await req.json()
+  if (!name) return NextResponse.json({ error: 'Nome obrigatório' }, { status: 400 })
+
+  const wl = await prisma.watchlist.create({
+    data: { userId, name, filtersJson: filtersJson || {} },
+  })
+  return NextResponse.json(wl, { status: 201 })
+}
+
+export async function PATCH(req: NextRequest) {
+  const session = await getServerSession(authOptions)
+  if (!session?.user) return NextResponse.json({ error: 'Não autenticado' }, { status: 401 })
+  const userId = (session.user as any).id
+
+  const { id, active } = await req.json()
+  const wl = await prisma.watchlist.updateMany({
+    where: { id, userId },
+    data: { active },
+  })
+  return NextResponse.json(wl)
 }
 
 export async function DELETE(req: NextRequest) {
   const session = await getServerSession(authOptions)
   if (!session?.user) return NextResponse.json({ error: 'Não autenticado' }, { status: 401 })
   const userId = (session.user as any).id
-  const { searchParams } = new URL(req.url)
-  const id = searchParams.get('id')
-  if (!id) return NextResponse.json({ error: 'ID em falta' }, { status: 400 })
+
+  const id = new URL(req.url).searchParams.get('id')
+  if (!id) return NextResponse.json({ error: 'ID obrigatório' }, { status: 400 })
+
   await prisma.watchlist.deleteMany({ where: { id, userId } })
   return NextResponse.json({ ok: true })
 }
