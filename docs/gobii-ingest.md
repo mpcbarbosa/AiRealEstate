@@ -10,9 +10,9 @@ POST /api/ingest/gobii/listings
 
 | Header | Obrigatório | Descrição |
 |--------|-------------|-----------|
-| `X-API-KEY` | Sim | Chave gerada em /settings |
+| `X-API-KEY` | Sim | Chave gerada em /settings ou GOBII_API_KEY env var |
 | `Content-Type` | Sim | `application/json` |
-| `Idempotency-Key` | Não | String única para evitar duplicados |
+| `Idempotency-Key` | Não | String única para evitar reprocessamento |
 
 ## Request Body
 
@@ -45,7 +45,10 @@ POST /api/ingest/gobii/listings
         "email": null,
         "contactUrl": null
       },
-      "images": ["https://example.com/img1.jpg"],
+      "images": [
+        "https://img4.idealista.pt/blur/WEB_LISTING/0/id.pro/123.jpg",
+        "https://img4.idealista.pt/blur/WEB_LISTING/0/id.pro/456.jpg"
+      ],
       "confidence": 0.95,
       "hash": "sha256-do-payload",
       "raw": {}
@@ -56,7 +59,7 @@ POST /api/ingest/gobii/listings
 
 ## Campos obrigatórios por item
 
-- `sourceUrl` (string) — identificador único do anúncio
+- `sourceUrl` (string, URL válida) — identificador único do anúncio
 
 ## Resposta de sucesso (200)
 
@@ -72,11 +75,42 @@ POST /api/ingest/gobii/listings
 }
 ```
 
+## Lógica de deduplicação
+
+1. **Exacta por sourceUrl** — se já existe, atualiza o imóvel (preço, imagens, etc.)
+2. **Hash fuzzy** — combina sourceName + tipologia + área (±5m²) + preço (±1000€) + localização
+3. Se hash fuzzy coincide, adiciona nova fonte ao master existente
+
+## Exemplo com curl
+
+```bash
+curl -X POST https://imoradar.onrender.com/api/ingest/gobii/listings \
+  -H "Content-Type: application/json" \
+  -H "X-API-KEY: <tua-chave>" \
+  -d '{
+    "source": "gobii",
+    "items": [{
+      "sourceUrl": "https://idealista.pt/imovel/99999",
+      "sourceName": "idealista",
+      "sourceFamily": "portals",
+      "title": "T2 no Chiado",
+      "businessType": "buy",
+      "propertyType": "apartment",
+      "typology": "T2",
+      "priceEur": 420000,
+      "areaM2": 75,
+      "locationText": "Chiado, Lisboa",
+      "images": ["https://example.com/foto1.jpg"],
+      "confidence": 0.9
+    }]
+  }'
+```
+
 ## Erros
 
 | Status | Causa |
 |--------|-------|
 | 401 | API Key inválida ou em falta |
 | 422 | Schema inválido |
-| 429 | Rate limit excedido |
+| 429 | Rate limit (30 req/min por IP) |
 | 500 | Erro interno |
