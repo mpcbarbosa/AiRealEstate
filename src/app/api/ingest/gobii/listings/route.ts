@@ -299,8 +299,7 @@ export async function POST(req: NextRequest) {
       let description = l.description || null
       if (description) {
         // Remover a secção de idiomas (tudo até "Disponív...el em:")
-        description = description.replace(/Disponível em:.*?Disponív[^
-]*/gs, '').trim()
+        description = description.replace(/Disponível em:[\s\S]*?(?=\n\n|$)/g, '').trim()
         // Remover markdown links [texto](#)
         description = description.replace(/\[([^\]]*)\]\([^)]*\)/g, '$1').trim()
         // Truncar a 2000 chars
