@@ -115,20 +115,29 @@ export default function ListingsClient() {
   const [loading, setLoading] = useState(true)
   const [view, setView] = useState<'grid' | 'list'>('grid')
   const [showFilters, setShowFilters] = useState(false)
-  const [filters, setFilters] = useState({
-    businessType: searchParams.get('businessType') || '',
-    propertyType: searchParams.get('propertyType') || '',
-    typology: searchParams.get('typology') || '',
-    location: searchParams.get('location') || '',
-    priceMin: searchParams.get('priceMin') || '',
-    priceMax: searchParams.get('priceMax') || '',
-    areaMin: searchParams.get('areaMin') || '',
-    areaMax: searchParams.get('areaMax') || '',
-    keywords: searchParams.get('keywords') || '',
-    status: searchParams.get('status') || '',
-    orderBy: searchParams.get('orderBy') || 'newest',
-    page: parseInt(searchParams.get('page') || '1'),
-  })
+  function filtersFromParams(sp: ReturnType<typeof useSearchParams>) {
+    return {
+      businessType: sp.get('businessType') || '',
+      propertyType: sp.get('propertyType') || '',
+      typology: sp.get('typology') || '',
+      location: sp.get('location') || '',
+      priceMin: sp.get('priceMin') || '',
+      priceMax: sp.get('priceMax') || '',
+      areaMin: sp.get('areaMin') || '',
+      areaMax: sp.get('areaMax') || '',
+      keywords: sp.get('keywords') || '',
+      status: sp.get('status') || '',
+      orderBy: sp.get('orderBy') || 'newest',
+      page: parseInt(sp.get('page') || '1'),
+    }
+  }
+
+  const [filters, setFilters] = useState(() => filtersFromParams(searchParams))
+
+  // Re-sincronizar filtros sempre que o URL mudar (clique no sidebar)
+  useEffect(() => {
+    setFilters(filtersFromParams(searchParams))
+  }, [searchParams])
 
   const fetchListings = useCallback(async () => {
     setLoading(true)
