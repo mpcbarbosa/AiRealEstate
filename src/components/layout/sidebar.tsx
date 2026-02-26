@@ -1,7 +1,7 @@
 'use client'
 import Link from 'next/link'
 import { usePathname, useSearchParams } from 'next/navigation'
-import { Suspense } from 'react'
+import { Suspense, useEffect, useState } from 'react'
 import { cn } from '@/lib/utils'
 import { LayoutDashboard, Home, Star, Phone, PhoneCall, XCircle, CheckCircle2, Bell, Settings, BarChart3 } from 'lucide-react'
 
@@ -25,6 +25,14 @@ function SidebarNav() {
   const pathname = usePathname()
   const searchParams = useSearchParams()
   const currentStatus = searchParams.get('status') || ''
+  const [counts, setCounts] = useState<Record<string, number>>({})
+
+  useEffect(() => {
+    fetch('/api/user/pipeline-counts')
+      .then(r => r.ok ? r.json() : {})
+      .then(setCounts)
+      .catch(() => {})
+  }, [pathname]) // re-fetch quando muda de página
 
   return (
     <nav className="flex-1 p-3 space-y-0.5 overflow-auto">
@@ -32,6 +40,7 @@ function SidebarNav() {
       {pipelineItems.map(item => {
         const Icon = item.icon
         const isActive = pathname === '/listings' && currentStatus === item.status
+        const count = item.status === '' ? counts.__total : counts[item.status]
         return (
           <Link key={item.href} href={item.href}
             className={cn(
@@ -39,7 +48,15 @@ function SidebarNav() {
               isActive ? 'bg-blue-600 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white'
             )}>
             <Icon className="w-4 h-4 shrink-0" />
-            {item.label}
+            <span className="flex-1">{item.label}</span>
+            {count != null && count > 0 && (
+              <span className={cn(
+                'text-xs px-1.5 py-0.5 rounded-full font-medium tabular-nums',
+                isActive ? 'bg-white/20 text-white' : 'bg-gray-800 text-gray-400'
+              )}>
+                {count > 999 ? '999+' : count}
+              </span>
+            )}
           </Link>
         )
       })}
