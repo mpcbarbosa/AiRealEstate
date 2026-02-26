@@ -1,4 +1,5 @@
 'use client'
+import { proxyImageUrls } from '@/lib/image-proxy'
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { formatPrice, formatArea, formatDate, PIPELINE_LABELS, PROPERTY_TYPE_LABELS, BUSINESS_TYPE_LABELS } from '@/lib/utils'
@@ -220,7 +221,7 @@ export default function ListingDetailClient() {
 
   const userListing = listing.userListings?.[0]
   const currentStatus = userListing?.status || 'NONE'
-  const allImages = listing.sources?.flatMap((s: any) => s.images || []) || []
+  const allImages = proxyImageUrls(listing.sources?.flatMap((s: any) => s.images || []) || [])
   const mainSource = listing.sources?.[0]
 
   return (

@@ -1,4 +1,5 @@
 'use client'
+import { proxyImageUrl } from '@/lib/image-proxy'
 import { useEffect, useState, useCallback } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { formatPrice, formatArea, PIPELINE_LABELS, PROPERTY_TYPE_LABELS, BUSINESS_TYPE_LABELS } from '@/lib/utils'
@@ -27,7 +28,7 @@ function PipelineBadge({ status }: { status?: string }) {
 
 function ListingCard({ listing, onPipeline }: { listing: any; onPipeline: (id: string, status: string) => void }) {
   const userListing = listing.userListings?.[0]
-  const mainImage = listing.sources?.[0]?.images?.[0]
+  const mainImage = proxyImageUrl(listing.sources?.[0]?.images?.[0])
   const sourceName = listing.sources?.[0]?.sourceName
 
   return (
