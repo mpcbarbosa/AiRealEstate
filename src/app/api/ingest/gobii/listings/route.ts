@@ -274,12 +274,48 @@ export async function POST(req: NextRequest) {
       sourceExternalId: l.sourceExternalId || l.id,
     }))
   }
-  // Para cada item, usar masterListingId como sourceExternalId se não houver outro
+  // Normalizar cada item — limpar campos do formato Gobii
   if (body.items) {
-    body.items = body.items.map((l: any) => ({
-      ...l,
-      sourceExternalId: l.sourceExternalId || l.masterListingId || l.id || null,
-    }))
+    body.items = body.items.map((l: any) => {
+      // Preço: "355 000" ou "355.000" → 355000
+      let priceEur = l.priceEur
+      if (!priceEur && l.price != null) {
+        const cleaned = String(l.price).replace(/[^0-9.]/g, '').replace(/\.(?=.*\.)/g, '')
+        priceEur = parseFloat(cleaned) || null
+      }
+
+      // Descrição: remover lixo de markdown/links de navegação de línguas
+      let description = l.description || null
+      if (description) {
+        // Remover a secção de idiomas (tudo até "Disponív...el em:")
+        description = description.replace(/Disponível em:.*?Disponív[^
+]*/gs, '').trim()
+        // Remover markdown links [texto](#)
+        description = description.replace(/\[([^\]]*)\]\([^)]*\)/g, '$1').trim()
+        // Truncar a 2000 chars
+        if (description.length > 2000) description = description.slice(0, 2000) + '...'
+        if (description.length < 10) description = null
+      }
+
+      // Título: limpar sufixo "— idealista [Saltar para o conteúdo principal](#wrapper)"
+      let title = l.title || null
+      if (title) {
+        title = title.replace(/\s*[—–-]\s*(idealista|supercasa|casasapo|imovirtual).*$/i, '').trim()
+        title = title.replace(/\[Saltar.*$/i, '').trim()
+      }
+
+      return {
+        ...l,
+        sourceUrl: l.sourceUrl || l.url,
+        sourceExternalId: l.sourceExternalId || l.masterListingId || String(l.id) || null,
+        priceEur,
+        description,
+        title,
+        typology: l.typology ? l.typology.toUpperCase().replace(/^T(\d)$/, 'T$1') : null,
+        locationText: l.locationText || l.location || null,
+        areaM2: l.areaM2 || (l.area ? parseFloat(String(l.area)) : null),
+      }
+    })
   }
 
   const payloadParsed = IngestPayloadSchema.safeParse(body)
