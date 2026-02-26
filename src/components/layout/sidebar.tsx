@@ -3,7 +3,7 @@ import Link from 'next/link'
 import { usePathname, useSearchParams } from 'next/navigation'
 import { Suspense } from 'react'
 import { cn } from '@/lib/utils'
-import { LayoutDashboard, Home, Star, Phone, PhoneCall, XCircle, CheckCircle2, Bell, Settings, BarChart3 } from 'lucide-react'
+import { LayoutDashboard, Home, Star, Phone, PhoneCall, XCircle, CheckCircle2, Bell, Settings, BarChart3, Activity } from 'lucide-react'
 
 const pipelineItems = [
   { label: 'Todos', href: '/listings', icon: Home, status: '' },
@@ -17,7 +17,8 @@ const pipelineItems = [
 const toolItems = [
   { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { label: 'Watchlists', href: '/watchlists', icon: Bell },
-  { label: 'Admin', href: '/admin/ingest', icon: BarChart3 },
+  { label: 'Ingest Logs', href: '/admin/ingest', icon: BarChart3 },
+  { label: 'Agentes', href: '/admin/agents', icon: Activity },
   { label: 'Definições', href: '/settings', icon: Settings },
 ]
 

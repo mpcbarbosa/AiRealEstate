@@ -216,6 +216,8 @@ enum NotifType {
 model IngestRun {
   id         String       @id @default(cuid())
   source     String
+  agentId    String?
+  agent      Agent?       @relation(fields: [agentId], references: [id])
   status     IngestStatus @default(PROCESSING)
   received   Int          @default(0)
   created    Int          @default(0)
@@ -255,4 +257,20 @@ enum ItemResult {
   UPDATED
   DEDUPED
   REJECTED
+}
+
+model Agent {
+  id          String    @id @default(cuid())
+  name        String
+  slug        String    @unique  // usado na webhook URL: /api/ingest/agent/{slug}
+  description String?
+  active      Boolean   @default(true)
+  webhookSecret String  // HMAC secret para validar assinatura
+  sourceFamily  String? // ex: "portals", "agencies"
+  sourceName    String? // ex: "idealista", "supercasa" (override por agente)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  ingestRuns  IngestRun[]
+
+  @@map("agents")
 }
