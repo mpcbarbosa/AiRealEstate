@@ -18,6 +18,9 @@ const ContactsSchema = z.object({
 }).optional().nullable()
 
 const IngestItemSchema = z.object({
+  payloadVersion: z.string().optional(),
+  itemType: z.string().optional(),       // ignorado — usado internamente pelo Gobii
+  masterListingId: z.string().optional(), // guardado como sourceExternalId se não houver outro
   capturedAt: z.string().optional(),
   sourceFamily: z.string().nullable().optional(),
   sourceName: z.string().nullable().optional(),
@@ -42,8 +45,13 @@ const IngestItemSchema = z.object({
 
 const IngestPayloadSchema = z.object({
   payloadVersion: z.string().optional(),
+  agent: z.string().optional(),    // nome do agente Gobii
+  runId: z.string().optional(),    // runId interno do Gobii
   source: z.string().default('gobii'),
   capturedAt: z.string().optional(),
+  input: z.any().optional(),       // searchProfile do Gobii
+  stats: z.any().optional(),       // stats internas do Gobii
+  errors: z.array(z.any()).optional(),
   items: z.array(z.any()).min(1),
 })
 
@@ -254,14 +262,23 @@ export async function POST(req: NextRequest) {
   try { body = await req.json() }
   catch { return NextResponse.json({ error: 'JSON inválido' }, { status: 400 }) }
 
-  // Normalizar payload do Gobii: suporta "listings" além de "items"
-  // e campos alternativos: url→sourceUrl, price→priceEur, id→sourceExternalId
+  // Normalizar payload do Gobii
+  // Suporta: "listings" ou "items", campos alternativos url/price/id
+  // Usa agent name como source se vier no envelope
+  if (body.agent && !body.source) body.source = body.agent
   if (body.listings && !body.items) {
     body.items = body.listings.map((l: any) => ({
       ...l,
       sourceUrl: l.sourceUrl || l.url,
       priceEur: l.priceEur ?? (typeof l.price === 'number' ? l.price : parseFloat(String(l.price).replace(/[^0-9.]/g, '')) || undefined),
       sourceExternalId: l.sourceExternalId || l.id,
+    }))
+  }
+  // Para cada item, usar masterListingId como sourceExternalId se não houver outro
+  if (body.items) {
+    body.items = body.items.map((l: any) => ({
+      ...l,
+      sourceExternalId: l.sourceExternalId || l.masterListingId || l.id || null,
     }))
   }
 
