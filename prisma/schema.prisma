@@ -66,6 +66,7 @@ model ListingMaster {
   userListings    UserListing[]
   notes           Note[]
   tasks           Task[]
+  notifications   Notification[]
 
   @@map("listing_masters")
 }
@@ -199,6 +200,7 @@ model Notification {
   watchlistId     String?
   watchlist       Watchlist?    @relation(fields: [watchlistId], references: [id])
   listingMasterId String?
+  listingMaster   ListingMaster? @relation(fields: [listingMasterId], references: [id], onDelete: SetNull)
   type            NotifType
   message         String
   read            Boolean       @default(false)

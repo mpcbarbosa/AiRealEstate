@@ -48,7 +48,12 @@ const IngestPayloadSchema = z.object({
 })
 
 async function authenticateApiKey(req: NextRequest): Promise<boolean> {
-  const apiKey = req.headers.get('x-api-key')
+  // Aceitar X-API-KEY ou Authorization: Bearer <key>
+  const xApiKey = req.headers.get('x-api-key')
+  const authHeader = req.headers.get('authorization')
+  const bearerKey = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null
+  const apiKey = xApiKey || bearerKey
+
   if (!apiKey) return false
 
   const key = await prisma.apiKey.findFirst({ where: { key: apiKey, active: true } })
@@ -248,6 +253,17 @@ export async function POST(req: NextRequest) {
   let body: any
   try { body = await req.json() }
   catch { return NextResponse.json({ error: 'JSON inválido' }, { status: 400 }) }
+
+  // Normalizar payload do Gobii: suporta "listings" além de "items"
+  // e campos alternativos: url→sourceUrl, price→priceEur, id→sourceExternalId
+  if (body.listings && !body.items) {
+    body.items = body.listings.map((l: any) => ({
+      ...l,
+      sourceUrl: l.sourceUrl || l.url,
+      priceEur: l.priceEur ?? (typeof l.price === 'number' ? l.price : parseFloat(String(l.price).replace(/[^0-9.]/g, '')) || undefined),
+      sourceExternalId: l.sourceExternalId || l.id,
+    }))
+  }
 
   const payloadParsed = IngestPayloadSchema.safeParse(body)
   if (!payloadParsed.success) {
