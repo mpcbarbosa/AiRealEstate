@@ -298,20 +298,27 @@ export async function POST(req: NextRequest) {
       // Descrição: remover lixo de markdown/links de navegação de línguas
       let description = l.description || null
       if (description) {
-        // Remover a secção de idiomas (tudo até "Disponív...el em:")
-        description = description.replace(/Disponível em:[\s\S]*?(?=\n\n|$)/g, '').trim()
-        // Remover markdown links [texto](#)
+        // Remover blocos de idiomas
+        description = description.replace(/Disponível em:.*$/gis, '').trim()
+        description = description.replace(/Outras línguas.*$/gis, '').trim()
+        // Remover markdown links [texto](#) e [texto](url)
         description = description.replace(/\[([^\]]*)\]\([^)]*\)/g, '$1').trim()
+        // Remover linhas com só #, *, - ou espaços
+        description = description.split('\n').filter((l: string) => l.replace(/[#*\-\s]/g, '').length > 3).join('\n').trim()
+        // Remover "Saltar para o conteúdo principal"
+        description = description.replace(/Saltar para o conteúdo principal/gi, '').trim()
         // Truncar a 2000 chars
         if (description.length > 2000) description = description.slice(0, 2000) + '...'
-        if (description.length < 10) description = null
+        if (description.length < 15) description = null
       }
 
-      // Título: limpar sufixo "— idealista [Saltar para o conteúdo principal](#wrapper)"
+      // Título: limpar sufixo "— idealista [Saltar...]" e trailing dashes
       let title = l.title || null
       if (title) {
-        title = title.replace(/\s*[—–-]\s*(idealista|supercasa|casasapo|imovirtual).*$/i, '').trim()
-        title = title.replace(/\[Saltar.*$/i, '').trim()
+        title = title.replace(/\s*[—–-]\s*(idealista|supercasa|casasapo|imovirtual|remax|era|century21|zome|kw|kwportugal).*$/i, '').trim()
+        title = title.replace(/\[Saltar[^\]]*\]/gi, '').trim()
+        title = title.replace(/\s*[—–-]\s*$/, '').trim()
+        if (title.length < 3) title = null
       }
 
       return {
