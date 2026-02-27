@@ -1,5 +1,6 @@
 'use client'
 import { proxyImageUrl } from '@/lib/image-proxy'
+import LocationFilter, { LocationSelection } from '@/components/ui/location-filter'
 import { useEffect, useState, useCallback } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { formatPrice, formatArea, PIPELINE_LABELS, PROPERTY_TYPE_LABELS, BUSINESS_TYPE_LABELS } from '@/lib/utils'
@@ -122,6 +123,7 @@ export default function ListingsClient() {
       propertyType: sp.get('propertyType') || '',
       typology: sp.get('typology') || '',
       location: sp.get('location') || '',
+      locations: [] as LocationSelection[],
       priceMin: sp.get('priceMin') || '',
       priceMax: sp.get('priceMax') || '',
       areaMin: sp.get('areaMin') || '',
@@ -230,11 +232,12 @@ export default function ListingsClient() {
                 {TYPOLOGIES.map(t => <option key={t} value={t}>{t}</option>)}
               </select>
             </div>
-            <div>
+            <div className="col-span-2">
               <label className="block text-xs text-gray-400 mb-1">Localização</label>
-              <input value={filters.location} onChange={e => updateFilter('location', e.target.value)}
-                placeholder="Ex: Lisboa, Porto…"
-                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-2 py-1.5 text-sm text-white placeholder-gray-600" />
+              <LocationFilter
+                value={filters.locations}
+                onChange={locs => setFilters(f => ({ ...f, locations: locs, location: locs.map(l => l.label).join(',') }))}
+              />
             </div>
             <div>
               <label className="block text-xs text-gray-400 mb-1">Preço mín. (€)</label>
@@ -269,7 +272,7 @@ export default function ListingsClient() {
             <input value={filters.keywords} onChange={e => updateFilter('keywords', e.target.value)}
               placeholder="Palavras-chave (ex: piscina, garagem…)"
               className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-3 py-1.5 text-sm text-white placeholder-gray-600" />
-            <button onClick={() => setFilters(f => ({ ...f, businessType: '', propertyType: '', typology: '', location: '', priceMin: '', priceMax: '', areaMin: '', areaMax: '', keywords: '', orderBy: 'newest', page: 1 }))}
+            <button onClick={() => setFilters(f => ({ ...f, businessType: '', propertyType: '', typology: '', location: '', locations: [], priceMin: '', priceMax: '', areaMin: '', areaMax: '', keywords: '', orderBy: 'newest', page: 1 }))}
               className="text-sm text-gray-400 hover:text-white transition whitespace-nowrap">
               Limpar filtros
             </button>
