@@ -1,10 +1,12 @@
 'use client'
 import { proxyImageUrl } from '@/lib/image-proxy'
 import LocationFilter, { LocationSelection } from '@/components/ui/location-filter'
+import dynamic from 'next/dynamic'
+const MapView = dynamic(() => import('@/components/ui/map-view'), { ssr: false })
 import { useEffect, useState, useCallback } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { formatPrice, formatArea, PIPELINE_LABELS, PROPERTY_TYPE_LABELS, BUSINESS_TYPE_LABELS } from '@/lib/utils'
-import { MapPin, Home, Filter, LayoutGrid, LayoutList, Star, Phone, RefreshCw } from 'lucide-react'
+import { MapPin, Home, Filter, LayoutGrid, LayoutList, Star, Phone, RefreshCw, Map } from 'lucide-react'
 import Link from 'next/link'
 
 const PROPERTY_TYPES = ['apartment', 'house', 'land', 'commercial', 'warehouse', 'building', 'other']
@@ -115,7 +117,7 @@ export default function ListingsClient() {
   const [listings, setListings] = useState<any[]>([])
   const [pagination, setPagination] = useState({ page: 1, pages: 1, total: 0 })
   const [loading, setLoading] = useState(true)
-  const [view, setView] = useState<'grid' | 'list'>('grid')
+  const [view, setView] = useState<'grid' | 'list' | 'map'>('grid')
   const [showFilters, setShowFilters] = useState(false)
   function filtersFromParams(sp: ReturnType<typeof useSearchParams>) {
     return {
