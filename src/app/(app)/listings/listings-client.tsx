@@ -203,6 +203,7 @@ export default function ListingsClient() {
           <div className="flex rounded-lg bg-gray-800 border border-gray-700 p-0.5">
             <button onClick={() => setView('grid')} className={`p-1.5 rounded ${view === 'grid' ? 'bg-gray-600 text-white' : 'text-gray-500'}`}><LayoutGrid className="w-4 h-4" /></button>
             <button onClick={() => setView('list')} className={`p-1.5 rounded ${view === 'list' ? 'bg-gray-600 text-white' : 'text-gray-500'}`}><LayoutList className="w-4 h-4" /></button>
+            <button onClick={() => setView('map')} title="Vista mapa" className={`p-1.5 rounded transition ${view === 'map' ? 'bg-blue-600 text-white' : 'text-gray-500 hover:text-white'}`}><Map className="w-4 h-4" /></button>
           </div>
         </div>
       </div>
@@ -294,14 +295,31 @@ export default function ListingsClient() {
         </div>
       ) : (
         <>
-          <div className={view === 'grid'
-            ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4'
-            : 'space-y-3'
-          }>
-            {listings.map(listing => (
-              <ListingCard key={listing.id} listing={listing} onPipeline={handlePipeline} />
-            ))}
-          </div>
+          {view === 'map' && (
+            <div style={{ height: 'calc(100vh - 220px)' }}>
+              <MapView listings={listings.map(l => ({
+                id: l.id,
+                title: l.title,
+                priceEur: l.priceEur,
+                locationText: l.locationText,
+                lat: l.lat,
+                lng: l.lng,
+                propertyType: l.propertyType,
+                typology: l.typology,
+                thumbnail: l.sources?.[0]?.images?.[0] || null,
+              }))} />
+            </div>
+          )}
+          {view !== 'map' && (
+            <div className={view === 'grid'
+              ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4'
+              : 'space-y-3'
+            }>
+              {listings.map(listing => (
+                <ListingCard key={listing.id} listing={listing} onPipeline={handlePipeline} />
+              ))}
+            </div>
+          )}
 
           {pagination.pages > 1 && (
             <div className="flex items-center justify-center gap-2 mt-8">
