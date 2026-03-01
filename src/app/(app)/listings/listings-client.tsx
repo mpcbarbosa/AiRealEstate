@@ -1,12 +1,10 @@
 'use client'
 import { proxyImageUrl } from '@/lib/image-proxy'
 import LocationFilter, { LocationSelection } from '@/components/ui/location-filter'
-import dynamic from 'next/dynamic'
-const MapView = dynamic(() => import('@/components/ui/map-view'), { ssr: false })
 import { useEffect, useState, useCallback } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { formatPrice, formatArea, PIPELINE_LABELS, PROPERTY_TYPE_LABELS, BUSINESS_TYPE_LABELS } from '@/lib/utils'
-import { MapPin, Home, Filter, LayoutGrid, LayoutList, Star, Phone, RefreshCw, Map } from 'lucide-react'
+import { MapPin, Home, Filter, LayoutGrid, LayoutList, Star, Phone, RefreshCw } from 'lucide-react'
 import Link from 'next/link'
 
 const PROPERTY_TYPES = ['apartment', 'house', 'land', 'commercial', 'warehouse', 'building', 'other']
@@ -117,7 +115,7 @@ export default function ListingsClient() {
   const [listings, setListings] = useState<any[]>([])
   const [pagination, setPagination] = useState({ page: 1, pages: 1, total: 0 })
   const [loading, setLoading] = useState(true)
-  const [view, setView] = useState<'grid' | 'list' | 'map'>('grid')
+  const [view, setView] = useState<'grid' | 'list'>('grid')
   const [showFilters, setShowFilters] = useState(false)
   function filtersFromParams(sp: ReturnType<typeof useSearchParams>) {
     return {
@@ -203,7 +201,7 @@ export default function ListingsClient() {
           <div className="flex rounded-lg bg-gray-800 border border-gray-700 p-0.5">
             <button onClick={() => setView('grid')} className={`p-1.5 rounded ${view === 'grid' ? 'bg-gray-600 text-white' : 'text-gray-500'}`}><LayoutGrid className="w-4 h-4" /></button>
             <button onClick={() => setView('list')} className={`p-1.5 rounded ${view === 'list' ? 'bg-gray-600 text-white' : 'text-gray-500'}`}><LayoutList className="w-4 h-4" /></button>
-            <button onClick={() => setView('map')} title="Vista mapa" className={`p-1.5 rounded transition ${view === 'map' ? 'bg-blue-600 text-white' : 'text-gray-500 hover:text-white'}`}><Map className="w-4 h-4" /></button>
+
           </div>
         </div>
       </div>
@@ -295,22 +293,7 @@ export default function ListingsClient() {
         </div>
       ) : (
         <>
-          {view === 'map' && (
-            <div style={{ height: 'calc(100vh - 220px)' }}>
-              <MapView listings={listings.map(l => ({
-                id: l.id,
-                title: l.title,
-                priceEur: l.priceEur,
-                locationText: l.locationText,
-                lat: l.lat,
-                lng: l.lng,
-                propertyType: l.propertyType,
-                typology: l.typology,
-                thumbnail: l.sources?.[0]?.images?.[0] || null,
-              }))} />
-            </div>
-          )}
-          {view !== 'map' && (
+          (
             <div className={view === 'grid'
               ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4'
               : 'space-y-3'
