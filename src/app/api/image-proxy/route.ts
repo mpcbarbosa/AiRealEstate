@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 
+export const dynamic = 'force-dynamic'
+
 const ALLOWED_DOMAINS = [
   'img3.idealista.com',
   'img4.idealista.com',

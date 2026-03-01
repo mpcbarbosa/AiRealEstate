@@ -4,6 +4,8 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
 
+export const dynamic = 'force-dynamic'
+
 const noteSchema = z.object({
   content: z.string().min(1, 'Nota não pode estar vazia'),
   listingMasterId: z.string(),

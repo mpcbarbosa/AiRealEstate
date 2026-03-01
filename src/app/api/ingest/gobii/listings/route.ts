@@ -5,6 +5,8 @@ import { generateDedupeHash, normalizeBusinessType, normalizePropertyType } from
 import { matchListingToWatchlists, notifyPriceDrop } from '@/lib/watchlist-matcher'
 import { z } from 'zod'
 
+export const dynamic = 'force-dynamic'
+
 const GeoSchema = z.object({
   lat: z.number().nullable().optional(),
   lng: z.number().nullable().optional(),
