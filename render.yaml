@@ -2,7 +2,7 @@ services:
   - type: web
     name: imoradar
     runtime: node
-    buildCommand: npm install && npx prisma generate
+    buildCommand: npm install && npx prisma generate && rm -rf .next && IMORADAR_BUILD=1 npm run build
     startCommand: npm start
     envVars:
       - key: PORT
