@@ -2,6 +2,8 @@
 const path = require('path')
 
 const nextConfig = {
+  // Desativar source maps em produção para reduzir uso de RAM no build
+  productionBrowserSourceMaps: false,
   images: {
     remotePatterns: [
       { protocol: 'https', hostname: '**' },
