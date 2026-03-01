@@ -1,26 +1,16 @@
 import { PrismaClient } from '@prisma/client'
 
-// Durante o build do Next.js, não inicializar o Prisma
-// Isto evita o erro "PrismaClient did not initialize yet" no Collecting page data
-const isBuildPhase = process.env.NEXT_PHASE === 'phase-production-build'
-
-declare global {
-  var __prisma: PrismaClient | undefined
+const globalForPrisma = globalThis as unknown as {
+  prisma: PrismaClient | undefined
 }
 
-function createPrismaClient() {
-  if (isBuildPhase) {
-    // Retornar um mock durante o build
-    return {} as PrismaClient
-  }
-  
-  if (globalThis.__prisma) return globalThis.__prisma
-  
-  const client = new PrismaClient({ log: ['error'] })
-  if (process.env.NODE_ENV !== 'production') {
-    globalThis.__prisma = client
-  }
-  return client
+// Durante o build, IMORADAR_BUILD=1 é definido no start.sh
+// Evita instanciar o Prisma no "Collecting page data"
+if (process.env.IMORADAR_BUILD === '1') {
+  // Mock durante o build - não instanciar Prisma
+  module.exports = { prisma: new Proxy({}, { get: () => () => Promise.resolve([]) }) }
+} else {
+  const prisma = globalForPrisma.prisma ?? new PrismaClient({ log: ['error'] })
+  if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma
+  module.exports = { prisma }
 }
-
-export const prisma = createPrismaClient()
