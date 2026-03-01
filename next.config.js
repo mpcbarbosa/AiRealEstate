@@ -13,8 +13,13 @@ const nextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
-  webpack: (config) => {
+  webpack: (config, { isServer }) => {
     config.resolve.alias['@'] = path.join(__dirname, 'src')
+    // Reduzir uso de memória no build (Render free = 512MB)
+    config.optimization = {
+      ...config.optimization,
+      minimize: true,
+    }
     return config
   },
 }
