@@ -52,7 +52,7 @@ const IngestPayloadSchema = z.object({
   input: z.any().optional(),       // searchProfile do Gobii
   stats: z.any().optional(),       // stats internas do Gobii
   errors: z.array(z.any()).optional(),
-  items: z.array(z.any()).min(1),
+  items: z.array(z.any()).default([]),
 })
 
 async function authenticateApiKey(req: NextRequest): Promise<boolean> {
@@ -341,6 +341,12 @@ export async function POST(req: NextRequest) {
   }
 
   const payload = payloadParsed.data
+
+  // Sem items — aceitar graciosamente sem criar run
+  if (!payload.items || payload.items.length === 0) {
+    return NextResponse.json({ ingestRunId: null, received: 0, created: 0, updated: 0, deduped: 0, rejected: 0, message: 'Nenhum item para processar' }, { status: 200 })
+  }
+
   const ingestRun = await prisma.ingestRun.create({
     data: { source: payload.source, received: payload.items.length, status: 'PROCESSING' },
   })
