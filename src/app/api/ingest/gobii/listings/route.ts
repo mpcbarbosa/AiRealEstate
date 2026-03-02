@@ -21,8 +21,8 @@ const ContactsSchema = z.object({
 
 const IngestItemSchema = z.object({
   payloadVersion: z.string().optional(),
-  itemType: z.string().optional(),       // ignorado — usado internamente pelo Gobii
-  masterListingId: z.string().optional(), // guardado como sourceExternalId se não houver outro
+  itemType: z.string().optional(),
+  masterListingId: z.string().optional(),
   capturedAt: z.string().optional(),
   sourceFamily: z.string().nullable().optional(),
   sourceName: z.string().nullable().optional(),
@@ -47,59 +47,57 @@ const IngestItemSchema = z.object({
 
 const IngestPayloadSchema = z.object({
   payloadVersion: z.string().optional(),
-  agent: z.string().optional(),    // nome do agente Gobii
-  runId: z.string().optional(),    // runId interno do Gobii
+  agent: z.string().optional(),
+  runId: z.string().optional(),
   source: z.string().default('gobii'),
   capturedAt: z.string().optional(),
-  input: z.any().optional(),       // searchProfile do Gobii
-  stats: z.any().optional(),       // stats internas do Gobii
-  errors: z.array(z.any()).optional(),
-  items: z.array(z.any()).default([]),
+  input: z.any().optional(),
+  stats: z.any().optional(),
+  items: z.array(IngestItemSchema),
 })
 
-async function authenticateApiKey(req: NextRequest): Promise<boolean> {
-  // Aceitar X-API-KEY ou Authorization: Bearer <key>
-  const xApiKey = req.headers.get('x-api-key')
-  const authHeader = req.headers.get('authorization')
-  const bearerKey = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null
-  const apiKey = xApiKey || bearerKey
+// ── Processar imagens: base64 → StoredImage, URLs → manter ──────────────────
+async function processImages(images: string[], sourceId: string): Promise<string[]> {
+  const result: string[] = []
 
-  if (!apiKey) return false
+  for (let i = 0; i < images.length; i++) {
+    const img = images[i]
 
-  const key = await prisma.apiKey.findFirst({ where: { key: apiKey, active: true } })
-  if (key) {
-    await prisma.apiKey.update({ where: { id: key.id }, data: { lastUsedAt: new Date() } })
-    return true
+    if (img.startsWith('data:')) {
+      // Base64: data:image/jpeg;base64,/9j/4AAQ...
+      try {
+        const [header, b64] = img.split(',')
+        if (!b64) { result.push(img); continue }
+        const mimeMatch = header.match(/data:([^;]+);base64/)
+        const mimeType = mimeMatch?.[1] || 'image/jpeg'
+        const buffer = Buffer.from(b64, 'base64')
+
+        // Upsert: se já existir (mesmo sourceId + index), atualizar
+        const stored = await prisma.storedImage.upsert({
+          where: { sourceId_index: { sourceId, index: i } },
+          create: { sourceId, index: i, mimeType, data: buffer, size: buffer.length },
+          update: { mimeType, data: buffer, size: buffer.length },
+        })
+        result.push(`/api/images/${stored.id}`)
+      } catch {
+        // Falhou a processar base64 — ignorar esta imagem
+      }
+    } else {
+      // URL normal — manter como está
+      result.push(img)
+    }
   }
 
-  return !!(process.env.GOBII_API_KEY && apiKey === process.env.GOBII_API_KEY)
+  return result
 }
 
-async function processItem(rawItem: any, ingestRunId: string): Promise<{
-  result: 'CREATED' | 'UPDATED' | 'DEDUPED' | 'REJECTED'
-  reason?: string
-  listingId?: string
-}> {
-  const parsed = IngestItemSchema.safeParse(rawItem)
-  if (!parsed.success) {
-    await prisma.ingestItem.create({
-      data: {
-        ingestRunId,
-        sourceUrl: rawItem?.sourceUrl,
-        result: 'REJECTED',
-        reason: parsed.error.errors.map((e: any) => `${e.path.join('.')}: ${e.message}`).join('; '),
-        rawPayload: rawItem,
-      },
-    })
-    return { result: 'REJECTED', reason: parsed.error.errors[0]?.message }
-  }
-
-  const item = parsed.data
+// ── Processar um item ────────────────────────────────────────────────────────
+async function processItem(item: z.infer<typeof IngestItemSchema>, ingestRunId: string) {
   const businessType = normalizeBusinessType(item.businessType)
   const propertyType = normalizePropertyType(item.propertyType)
   const dedupeHash = generateDedupeHash(item)
 
-  // ── Verificar se sourceUrl já existe (UPDATE) ─────────────────────────────
+  // ── Atualizar fonte existente (UPDATED) ──────────────────────────────────
   const existingSource = await prisma.listingSource.findUnique({
     where: { sourceUrl: item.sourceUrl },
     include: { listingMaster: true },
@@ -108,10 +106,10 @@ async function processItem(rawItem: any, ingestRunId: string): Promise<{
   if (existingSource) {
     const master = existingSource.listingMaster
     const historyEntries: any[] = []
+    let oldPrice = master.priceEur
     let priceDrop = false
-    let oldPrice = master.priceEur || 0
 
-    if (item.priceEur != null && master.priceEur != null && Math.abs(item.priceEur - master.priceEur) > 1) {
+    if (item.priceEur != null && master.priceEur != null && item.priceEur !== master.priceEur) {
       historyEntries.push({
         listingMasterId: master.id,
         changeType: 'PRICE_CHANGE',
@@ -140,10 +138,15 @@ async function processItem(rawItem: any, ingestRunId: string): Promise<{
       },
     })
 
+    // Processar imagens (base64 → StoredImage ou manter URLs)
+    const finalImages = item.images.length > 0
+      ? await processImages(item.images, existingSource.id)
+      : (existingSource.images as string[])
+
     await prisma.listingSource.update({
       where: { id: existingSource.id },
       data: {
-        images: item.images.length > 0 ? item.images : existingSource.images,
+        images: finalImages,
         contacts: (item.contacts as any) || existingSource.contacts,
         rawPayload: (item.raw as any) || null,
         capturedAt: item.capturedAt ? new Date(item.capturedAt) : new Date(),
@@ -154,7 +157,6 @@ async function processItem(rawItem: any, ingestRunId: string): Promise<{
       await prisma.listingHistory.createMany({ data: historyEntries })
     }
 
-    // Notificar queda de preço
     if (priceDrop && item.priceEur != null) {
       await notifyPriceDrop(master.id, master.title, oldPrice, item.priceEur)
     }
@@ -165,11 +167,11 @@ async function processItem(rawItem: any, ingestRunId: string): Promise<{
     return { result: 'UPDATED', listingId: master.id }
   }
 
-  // ── Verificar dedupe fuzzy (DEDUPED — nova fonte, master existente) ────────
+  // ── Dedupe fuzzy (DEDUPED) ───────────────────────────────────────────────
   const existingByHash = await prisma.listingMaster.findUnique({ where: { dedupeHash } })
 
   if (existingByHash) {
-    await prisma.listingSource.create({
+    const newSource = await prisma.listingSource.create({
       data: {
         listingMasterId: existingByHash.id,
         sourceFamily: item.sourceFamily,
@@ -177,18 +179,27 @@ async function processItem(rawItem: any, ingestRunId: string): Promise<{
         sourceUrl: item.sourceUrl,
         sourceExternalId: item.sourceExternalId,
         contacts: (item.contacts as any) || null,
-        images: item.images,
+        images: [],
         rawPayload: (item.raw as any) || null,
         capturedAt: item.capturedAt ? new Date(item.capturedAt) : new Date(),
       },
     })
+
+    const finalImages = await processImages(item.images, newSource.id)
+    if (finalImages.length > 0) {
+      await prisma.listingSource.update({
+        where: { id: newSource.id },
+        data: { images: finalImages },
+      })
+    }
+
     await prisma.ingestItem.create({
       data: { ingestRunId, sourceUrl: item.sourceUrl, result: 'DEDUPED', reason: 'Hash duplicado', listingId: existingByHash.id },
     })
     return { result: 'DEDUPED', listingId: existingByHash.id }
   }
 
-  // ── Criar novo ListingMaster + ListingSource ───────────────────────────────
+  // ── Criar novo (CREATED) ─────────────────────────────────────────────────
   const master = await prisma.listingMaster.create({
     data: {
       title: item.title,
@@ -208,7 +219,7 @@ async function processItem(rawItem: any, ingestRunId: string): Promise<{
     },
   })
 
-  await prisma.listingSource.create({
+  const newSource = await prisma.listingSource.create({
     data: {
       listingMasterId: master.id,
       sourceFamily: item.sourceFamily,
@@ -216,11 +227,19 @@ async function processItem(rawItem: any, ingestRunId: string): Promise<{
       sourceUrl: item.sourceUrl,
       sourceExternalId: item.sourceExternalId,
       contacts: (item.contacts as any) || null,
-      images: item.images,
+      images: [],
       rawPayload: (item.raw as any) || null,
       capturedAt: item.capturedAt ? new Date(item.capturedAt) : new Date(),
     },
   })
+
+  const finalImages = await processImages(item.images, newSource.id)
+  if (finalImages.length > 0) {
+    await prisma.listingSource.update({
+      where: { id: newSource.id },
+      data: { images: finalImages },
+    })
+  }
 
   await prisma.listingHistory.create({
     data: {
@@ -230,153 +249,73 @@ async function processItem(rawItem: any, ingestRunId: string): Promise<{
     },
   })
 
+  await matchListingToWatchlists(master.id)
+
   await prisma.ingestItem.create({
     data: { ingestRunId, sourceUrl: item.sourceUrl, result: 'CREATED', listingId: master.id },
   })
-
-  // ── Motor de matching: verificar watchlists ───────────────────────────────
-  await matchListingToWatchlists({
-    id: master.id,
-    title: master.title,
-    businessType: master.businessType,
-    propertyType: master.propertyType,
-    typology: master.typology,
-    priceEur: master.priceEur,
-    areaM2: master.areaM2,
-    locationText: master.locationText,
-    description: master.description,
-  }, true)
-
   return { result: 'CREATED', listingId: master.id }
 }
 
+// ── Handler principal ────────────────────────────────────────────────────────
 export async function POST(req: NextRequest) {
-  const ip = req.headers.get('x-forwarded-for') || 'unknown'
-  if (!rateLimit(`ingest:${ip}`, 30, 60_000)) {
-    return NextResponse.json({ error: 'Rate limit excedido.' }, { status: 429 })
-  }
+  // Auth
+  const apiKey = req.headers.get('x-api-key') || req.nextUrl.searchParams.get('apiKey')
+  if (!apiKey) return NextResponse.json({ error: 'API key obrigatória' }, { status: 401 })
 
-  // Autenticação opcional — se vier API key válida, aceitar; se não vier, aceitar na mesma
-  // (o endpoint só recebe dados, não expõe informação sensível)
-  const authHeader = req.headers.get('authorization')
-  const xApiKey = req.headers.get('x-api-key')
-  const hasKey = authHeader || xApiKey
-  if (hasKey && !await authenticateApiKey(req)) {
-    // Se veio uma key mas é inválida, rejeitar
-    // Se não veio key nenhuma, aceitar (Gobii com problema de secret)
-    const bearerVal = authHeader?.replace('Bearer ', '').trim()
-    const isPlaceholder = bearerVal?.includes('<<') || bearerVal === '' || bearerVal === 'undefined'
-    if (!isPlaceholder) {
-      return NextResponse.json({ error: 'API Key inválida' }, { status: 401 })
-    }
-  }
+  const keyRecord = await prisma.apiKey.findFirst({
+    where: { key: apiKey, active: true },
+    include: { user: true },
+  })
+  if (!keyRecord) return NextResponse.json({ error: 'API key inválida' }, { status: 401 })
+
+  const limited = await rateLimit(keyRecord.userId, 100, 60)
+  if (limited) return NextResponse.json({ error: 'Rate limit excedido' }, { status: 429 })
 
   let body: any
   try { body = await req.json() }
   catch { return NextResponse.json({ error: 'JSON inválido' }, { status: 400 }) }
 
-  // Normalizar payload do Gobii
-  // Suporta: "listings" ou "items", campos alternativos url/price/id
-  // Usa agent name como source se vier no envelope
-  if (body.agent && !body.source) body.source = body.agent
-  if (body.listings && !body.items) {
-    body.items = body.listings.map((l: any) => ({
-      ...l,
-      sourceUrl: l.sourceUrl || l.url,
-      priceEur: l.priceEur ?? (typeof l.price === 'number' ? l.price : parseFloat(String(l.price).replace(/[^0-9.]/g, '')) || undefined),
-      sourceExternalId: l.sourceExternalId || l.id,
-    }))
-  }
-  // Normalizar cada item — limpar campos do formato Gobii
-  if (body.items) {
-    body.items = body.items.map((l: any) => {
-      // Preço: "355 000" ou "355.000" → 355000
-      let priceEur = l.priceEur
-      if (!priceEur && l.price != null) {
-        const cleaned = String(l.price).replace(/[^0-9.]/g, '').replace(/\.(?=.*\.)/g, '')
-        priceEur = parseFloat(cleaned) || null
-      }
-
-      // Descrição: remover lixo de markdown/links de navegação de línguas
-      let description = l.description || null
-      if (description) {
-        // Remover blocos de idiomas
-        description = description.replace(/Disponível em:.*$/gis, '').trim()
-        description = description.replace(/Outras línguas.*$/gis, '').trim()
-        // Remover markdown links [texto](#) e [texto](url)
-        description = description.replace(/\[([^\]]*)\]\([^)]*\)/g, '$1').trim()
-        // Remover linhas com só #, *, - ou espaços
-        description = description.split('\n').filter((l: string) => l.replace(/[#*\-\s]/g, '').length > 3).join('\n').trim()
-        // Remover "Saltar para o conteúdo principal"
-        description = description.replace(/Saltar para o conteúdo principal/gi, '').trim()
-        // Truncar a 2000 chars
-        if (description.length > 2000) description = description.slice(0, 2000) + '...'
-        if (description.length < 15) description = null
-      }
-
-      // Título: limpar sufixo "— idealista [Saltar...]" e trailing dashes
-      let title = l.title || null
-      if (title) {
-        title = title.replace(/\s*[—–-]\s*(idealista|supercasa|casasapo|imovirtual|remax|era|century21|zome|kw|kwportugal).*$/i, '').trim()
-        title = title.replace(/\[Saltar[^\]]*\]/gi, '').trim()
-        title = title.replace(/\s*[—–-]\s*$/, '').trim()
-        if (title.length < 3) title = null
-      }
-
-      return {
-        ...l,
-        sourceUrl: l.sourceUrl || l.url,
-        sourceExternalId: l.sourceExternalId || l.masterListingId || String(l.id) || null,
-        priceEur,
-        description,
-        title,
-        typology: l.typology ? l.typology.toUpperCase().replace(/^T(\d)$/, 'T$1') : null,
-        locationText: l.locationText || l.location || null,
-        areaM2: l.areaM2 || (l.area ? parseFloat(String(l.area)) : null),
-      }
-    })
+  const parsed = IngestPayloadSchema.safeParse(body)
+  if (!parsed.success) {
+    return NextResponse.json({ error: 'Payload inválido', details: parsed.error.flatten() }, { status: 422 })
   }
 
-  const payloadParsed = IngestPayloadSchema.safeParse(body)
-  if (!payloadParsed.success) {
-    return NextResponse.json({ error: 'Payload inválido', details: payloadParsed.error.errors }, { status: 422 })
-  }
+  const payload = parsed.data
 
-  const payload = payloadParsed.data
-
-  // Sem items — aceitar graciosamente sem criar run
-  if (!payload.items || payload.items.length === 0) {
-    return NextResponse.json({ ingestRunId: null, received: 0, created: 0, updated: 0, deduped: 0, rejected: 0, message: 'Nenhum item para processar' }, { status: 200 })
-  }
-
-  const ingestRun = await prisma.ingestRun.create({
-    data: { source: payload.source, received: payload.items.length, status: 'PROCESSING' },
+  // Criar IngestRun
+  const run = await prisma.ingestRun.create({
+    data: {
+      userId: keyRecord.userId,
+      source: payload.source || 'gobii',
+      agent: payload.agent,
+      status: 'PROCESSING',
+      itemCount: payload.items.length,
+    },
   })
 
-  let created = 0, updated = 0, deduped = 0, rejected = 0
-  const errors: string[] = []
+  const stats = { received: payload.items.length, created: 0, updated: 0, deduped: 0, rejected: 0 }
+  const errors: any[] = []
 
-  for (const rawItem of payload.items) {
+  for (const item of payload.items) {
     try {
-      const result = await processItem(rawItem, ingestRun.id)
-      if (result.result === 'CREATED') created++
-      else if (result.result === 'UPDATED') updated++
-      else if (result.result === 'DEDUPED') deduped++
-      else { rejected++; if (result.reason) errors.push(result.reason) }
-    } catch (err: any) {
-      rejected++
-      errors.push(`Erro: ${err.message}`)
+      const r = await processItem(item, run.id)
+      if (r.result === 'CREATED') stats.created++
+      else if (r.result === 'UPDATED') stats.updated++
+      else if (r.result === 'DEDUPED') stats.deduped++
+    } catch (e: any) {
+      stats.rejected++
+      errors.push({ url: item.sourceUrl, error: e.message })
       await prisma.ingestItem.create({
-        data: { ingestRunId: ingestRun.id, sourceUrl: rawItem?.sourceUrl, result: 'REJECTED', reason: err.message, rawPayload: rawItem },
-      })
+        data: { ingestRunId: run.id, sourceUrl: item.sourceUrl, result: 'REJECTED', reason: e.message },
+      }).catch(() => {})
     }
   }
 
   await prisma.ingestRun.update({
-    where: { id: ingestRun.id },
-    data: { status: 'DONE', created, updated, deduped, rejected, errors: errors.length > 0 ? errors as any : null, finishedAt: new Date() },
+    where: { id: run.id },
+    data: { status: 'DONE', stats: stats as any },
   })
 
-  console.log(`[INGEST] ${ingestRun.id}: +${created} ~${updated} =${deduped} x${rejected}`)
-  return NextResponse.json({ ingestRunId: ingestRun.id, received: payload.items.length, created, updated, deduped, rejected, errors })
+  return NextResponse.json({ runId: run.id, stats, errors: errors.slice(0, 10) })
 }

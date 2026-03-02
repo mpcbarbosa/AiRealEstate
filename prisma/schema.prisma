@@ -258,3 +258,16 @@ enum ItemResult {
   DEDUPED
   REJECTED
 }
+
+model StoredImage {
+  id          String   @id @default(cuid())
+  sourceId    String   // ListingSource.id
+  index       Int      // posição na galeria
+  mimeType    String   @default("image/jpeg")
+  data        Bytes    // conteúdo binário da imagem
+  size        Int      // bytes
+  createdAt   DateTime @default(now())
+
+  @@unique([sourceId, index])
+  @@map("stored_images")
+}

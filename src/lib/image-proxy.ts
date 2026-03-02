@@ -14,12 +14,14 @@ const PROXY_DOMAINS = [
 
 export function proxyImageUrl(url: string | null | undefined): string | null {
   if (!url) return null
+
+  // Imagem já guardada localmente
+  if (url.startsWith('/api/images/')) return url
+
   try {
     const parsed = new URL(url)
     const needsProxy = PROXY_DOMAINS.some(d => parsed.hostname === d || parsed.hostname.endsWith('.' + d))
-    if (needsProxy) {
-      return `/api/image-proxy?url=${encodeURIComponent(url)}`
-    }
+    if (needsProxy) return `/api/image-proxy?url=${encodeURIComponent(url)}`
     return url
   } catch {
     return null
