@@ -1,16 +1,23 @@
 import { PrismaClient } from '@prisma/client'
 
-const globalForPrisma = globalThis as unknown as {
-  prisma: PrismaClient | undefined
+declare global {
+  var __prisma: PrismaClient | undefined
 }
 
-// Durante o build, IMORADAR_BUILD=1 é definido no start.sh
-// Evita instanciar o Prisma no "Collecting page data"
-if (process.env.IMORADAR_BUILD === '1') {
-  // Mock durante o build - não instanciar Prisma
-  module.exports = { prisma: new Proxy({}, { get: () => () => Promise.resolve([]) }) }
-} else {
-  const prisma = globalForPrisma.prisma ?? new PrismaClient({ log: ['error'] })
-  if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma
-  module.exports = { prisma }
+function getPrisma(): PrismaClient {
+  if (globalThis.__prisma) return globalThis.__prisma
+  const client = new PrismaClient({ log: ['error'] })
+  if (process.env.NODE_ENV !== 'production') {
+    globalThis.__prisma = client
+  }
+  return client
 }
+
+export const prisma = new Proxy({} as PrismaClient, {
+  get(_target, prop) {
+    const client = getPrisma()
+    const value = (client as any)[prop]
+    if (typeof value === 'function') return value.bind(client)
+    return value
+  }
+})
