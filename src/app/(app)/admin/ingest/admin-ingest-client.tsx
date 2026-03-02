@@ -129,9 +129,24 @@ function RunRow({ run }: { run: any }) {
 
 export default function AdminIngestClient({ runs, totals }: { runs: any[]; totals: any }) {
   const [filter, setFilter] = useState<'all' | 'DONE' | 'FAILED'>('all')
+  const [geocoding, setGeocoding] = useState(false)
+  const [geocodeResult, setGeocodeResult] = useState<any>(null)
 
   const filtered = filter === 'all' ? runs : runs.filter(r => r.status === filter)
   const failedCount = runs.filter(r => r.status === 'FAILED').length
+
+  async function runGeocode() {
+    setGeocoding(true)
+    setGeocodeResult(null)
+    try {
+      const res = await fetch('/api/admin/geocode', { method: 'POST' })
+      const data = await res.json()
+      setGeocodeResult(data)
+    } catch (e) {
+      setGeocodeResult({ error: 'Erro ao geocodificar' })
+    }
+    setGeocoding(false)
+  }
 
   return (
     <div className="max-w-7xl mx-auto">
@@ -140,12 +155,27 @@ export default function AdminIngestClient({ runs, totals }: { runs: any[]; total
           <h1 className="text-2xl font-bold text-white">Admin — Ingest</h1>
           <p className="text-sm text-gray-500 mt-0.5">{runs.length} runs registadas</p>
         </div>
-        {failedCount > 0 && (
-          <div className="flex items-center gap-2 px-3 py-2 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-sm">
-            <AlertCircle className="w-4 h-4" />
-            {failedCount} run(s) com falha
-          </div>
-        )}
+        <div className="flex items-center gap-3">
+          {geocodeResult && !geocodeResult.error && (
+            <span className="text-xs text-green-400 bg-green-500/10 border border-green-500/20 px-3 py-1.5 rounded-lg">
+              ✓ {geocodeResult.updated} geocodificados · {geocodeResult.remaining} restantes
+            </span>
+          )}
+          <button
+            onClick={runGeocode}
+            disabled={geocoding}
+            className="flex items-center gap-2 px-3 py-2 bg-gray-800 hover:bg-gray-700 disabled:opacity-50 text-gray-300 hover:text-white rounded-lg text-sm transition"
+          >
+            <Database className={`w-4 h-4 ${geocoding ? 'animate-pulse' : ''}`} />
+            {geocoding ? 'A geocodificar…' : 'Geocodificar GPS'}
+          </button>
+          {failedCount > 0 && (
+            <div className="flex items-center gap-2 px-3 py-2 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-sm">
+              <AlertCircle className="w-4 h-4" />
+              {failedCount} run(s) com falha
+            </div>
+          )}
+        </div>
       </div>
 
       {/* KPIs */}

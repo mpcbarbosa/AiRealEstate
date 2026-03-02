@@ -144,11 +144,15 @@ export default function MapView({
     return (
       <div
         style={{ height }}
-        className="bg-gray-800 rounded-xl flex items-center justify-center text-gray-500"
+        className="bg-gray-900 rounded-xl flex flex-col items-center justify-center text-gray-500 border border-gray-800"
       >
-        <div className="text-center">
-          <div className="text-3xl mb-2">📍</div>
-          <p className="text-sm">Nenhum imóvel com coordenadas GPS</p>
+        <div className="text-center px-6">
+          <div className="text-4xl mb-3">🗺️</div>
+          <p className="text-sm font-medium text-gray-400 mb-1">Nenhum imóvel com coordenadas GPS</p>
+          <p className="text-xs text-gray-600 max-w-xs">
+            As coordenadas são preenchidas pelo agente Gobii no próximo run automático.
+            Os imóveis já existentes serão atualizados na próxima ingestão.
+          </p>
         </div>
       </div>
     )
