@@ -1,9 +1,7 @@
 import { redirect } from 'next/navigation'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
 
-export default async function Home() {
-  const session = await getServerSession(authOptions)
-  if (session) redirect('/listings')
-  else redirect('/login')
+// A verificação de sessão é feita pelo middleware
+// A página raiz redireciona diretamente para login
+export default function Home() {
+  redirect('/login')
 }

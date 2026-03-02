@@ -1,5 +1,7 @@
 #!/bin/bash
 set -e
+echo "==> A gerar Prisma Client..."
+npx prisma generate
 echo "==> A sincronizar base de dados..."
 npx prisma db push --accept-data-loss --skip-generate
 echo "==> A fazer build..."
