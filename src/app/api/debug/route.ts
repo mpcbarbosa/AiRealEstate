@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { existsSync, readFileSync } from 'fs'
 import path from 'path'
+import { evalManifest } from 'next/dist/server/load-manifest'
 
 export const dynamic = 'force-dynamic'
 
@@ -8,11 +9,20 @@ export async function GET() {
   const distDir = path.join(process.cwd(), '.next')
   const manifestPath = path.join(distDir, 'server', 'app', 'page_client-reference-manifest.js')
   
-  return NextResponse.json({
-    cwd: process.cwd(),
-    manifestExists: existsSync(manifestPath),
-    manifestSize: existsSync(manifestPath) ? readFileSync(manifestPath).length : 0,
-    buildId: existsSync(path.join(distDir, 'BUILD_ID')) ? readFileSync(path.join(distDir, 'BUILD_ID'), 'utf8').trim() : null,
-    nodeEnv: process.env.NODE_ENV,
-  })
+  try {
+    const context = evalManifest(manifestPath, false)
+    const manifest = (context as any).__RSC_MANIFEST?.['/page']
+    const clientModuleKeys = manifest?.clientModules ? Object.keys(manifest.clientModules) : []
+    
+    return NextResponse.json({
+      cwd: process.cwd(),
+      manifestExists: existsSync(manifestPath),
+      hasRSCManifest: !!(context as any).__RSC_MANIFEST,
+      hasPageEntry: !!manifest,
+      clientModulesCount: clientModuleKeys.length,
+      firstClientModuleKey: clientModuleKeys[0] || null,
+    })
+  } catch(e: any) {
+    return NextResponse.json({ error: e.message, cwd: process.cwd() })
+  }
 }
