@@ -1,11 +1,16 @@
 'use client'
 import { proxyImageUrl } from '@/lib/image-proxy'
 import LocationFilter, { LocationSelection } from '@/components/ui/location-filter'
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { formatPrice, formatArea, PIPELINE_LABELS, PROPERTY_TYPE_LABELS, BUSINESS_TYPE_LABELS } from '@/lib/utils'
-import { MapPin, Home, Filter, LayoutGrid, LayoutList, Star, Phone, RefreshCw } from 'lucide-react'
+import { MapPin, Home, Filter, LayoutGrid, LayoutList, Map, Star, Phone, RefreshCw } from 'lucide-react'
 import Link from 'next/link'
+import dynamic from 'next/dynamic'
+
+const MapView = dynamic(() => import('@/components/ui/map-view'), { ssr: false, loading: () => (
+  <div className="w-full h-[calc(100vh-220px)] bg-gray-800 rounded-xl animate-pulse" />
+)})
 
 const PROPERTY_TYPES = ['apartment', 'house', 'land', 'commercial', 'warehouse', 'building', 'other']
 const BUSINESS_TYPES = ['buy', 'rent', 'invest']
@@ -113,10 +118,12 @@ function ListingCard({ listing, onPipeline }: { listing: any; onPipeline: (id: s
 export default function ListingsClient() {
   const searchParams = useSearchParams()
   const [listings, setListings] = useState<any[]>([])
+  const [allGeoListings, setAllGeoListings] = useState<any[]>([])
   const [pagination, setPagination] = useState({ page: 1, pages: 1, total: 0 })
   const [loading, setLoading] = useState(true)
-  const [view, setView] = useState<'grid' | 'list'>('grid')
+  const [view, setView] = useState<'grid' | 'list' | 'map'>('grid')
   const [showFilters, setShowFilters] = useState(false)
+
   function filtersFromParams(sp: ReturnType<typeof useSearchParams>) {
     return {
       businessType: sp.get('businessType') || '',
@@ -137,7 +144,6 @@ export default function ListingsClient() {
 
   const [filters, setFilters] = useState(() => filtersFromParams(searchParams))
 
-  // Re-sincronizar filtros sempre que o URL mudar (clique no sidebar)
   useEffect(() => {
     setFilters(filtersFromParams(searchParams))
   }, [searchParams])
@@ -155,7 +161,24 @@ export default function ListingsClient() {
     setLoading(false)
   }, [filters])
 
+  // Fetch all listings with coords for map view (sem paginação)
+  const fetchAllGeo = useCallback(async () => {
+    const params = new URLSearchParams()
+    Object.entries(filters).forEach(([k, v]) => { if (v && k !== 'page') params.set(k, String(v)) })
+    params.set('limit', '500')
+    params.set('page', '1')
+    const res = await fetch(`/api/listings?${params}`)
+    if (res.ok) {
+      const data = await res.json()
+      setAllGeoListings(data.listings.filter((l: any) => l.lat && l.lng))
+    }
+  }, [filters])
+
   useEffect(() => { fetchListings() }, [fetchListings])
+
+  useEffect(() => {
+    if (view === 'map') fetchAllGeo()
+  }, [view, fetchAllGeo])
 
   async function handlePipeline(listingMasterId: string, status: string) {
     await fetch('/api/user/pipeline', {
@@ -176,6 +199,16 @@ export default function ListingsClient() {
 
   const statusLabel = filters.status ? PIPELINE_LABELS[filters.status] : null
 
+  const mapListings = allGeoListings.map(l => ({
+    id: l.id,
+    lat: l.lat,
+    lng: l.lng,
+    title: l.title,
+    priceEur: l.priceEur,
+    typology: l.typology,
+    locationText: l.locationText,
+  }))
+
   return (
     <div className="max-w-7xl mx-auto">
       <div className="flex items-center justify-between mb-6">
@@ -185,6 +218,7 @@ export default function ListingsClient() {
           </h1>
           <p className="text-gray-500 text-sm mt-0.5">
             {loading ? 'A carregar…' : `${pagination.total} imóvel(eis)`}
+            {view === 'map' && allGeoListings.length > 0 && ` · ${allGeoListings.length} com GPS`}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -199,9 +233,9 @@ export default function ListingsClient() {
             Filtros{activeFiltersCount > 0 ? ` (${activeFiltersCount})` : ''}
           </button>
           <div className="flex rounded-lg bg-gray-800 border border-gray-700 p-0.5">
-            <button onClick={() => setView('grid')} className={`p-1.5 rounded ${view === 'grid' ? 'bg-gray-600 text-white' : 'text-gray-500'}`}><LayoutGrid className="w-4 h-4" /></button>
-            <button onClick={() => setView('list')} className={`p-1.5 rounded ${view === 'list' ? 'bg-gray-600 text-white' : 'text-gray-500'}`}><LayoutList className="w-4 h-4" /></button>
-
+            <button onClick={() => setView('grid')} title="Grelha" className={`p-1.5 rounded ${view === 'grid' ? 'bg-gray-600 text-white' : 'text-gray-500 hover:text-gray-300'}`}><LayoutGrid className="w-4 h-4" /></button>
+            <button onClick={() => setView('list')} title="Lista" className={`p-1.5 rounded ${view === 'list' ? 'bg-gray-600 text-white' : 'text-gray-500 hover:text-gray-300'}`}><LayoutList className="w-4 h-4" /></button>
+            <button onClick={() => setView('map')} title="Mapa" className={`p-1.5 rounded ${view === 'map' ? 'bg-gray-600 text-white' : 'text-gray-500 hover:text-gray-300'}`}><Map className="w-4 h-4" /></button>
           </div>
         </div>
       </div>
@@ -281,10 +315,15 @@ export default function ListingsClient() {
         </div>
       )}
 
-      {loading ? (
+      {loading && view !== 'map' ? (
         <div className="flex items-center justify-center h-64">
           <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
         </div>
+      ) : view === 'map' ? (
+        <MapView
+          listings={mapListings}
+          height="calc(100vh - 220px)"
+        />
       ) : listings.length === 0 ? (
         <div className="text-center py-24 text-gray-600">
           <Home className="w-12 h-12 mx-auto mb-3 opacity-20" />
@@ -293,16 +332,14 @@ export default function ListingsClient() {
         </div>
       ) : (
         <>
-          (
-            <div className={view === 'grid'
-              ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4'
-              : 'space-y-3'
-            }>
-              {listings.map(listing => (
-                <ListingCard key={listing.id} listing={listing} onPipeline={handlePipeline} />
-              ))}
-            </div>
-          )}
+          <div className={view === 'grid'
+            ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4'
+            : 'space-y-3'
+          }>
+            {listings.map(listing => (
+              <ListingCard key={listing.id} listing={listing} onPipeline={handlePipeline} />
+            ))}
+          </div>
 
           {pagination.pages > 1 && (
             <div className="flex items-center justify-center gap-2 mt-8">

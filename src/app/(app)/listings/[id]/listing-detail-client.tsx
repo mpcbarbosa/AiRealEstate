@@ -9,6 +9,9 @@ import {
   Maximize2, X, Building2, Ruler, Euro, Calendar, Tag
 } from 'lucide-react'
 import Link from 'next/link'
+import dynamic from 'next/dynamic'
+
+const MapView = dynamic(() => import('@/components/ui/map-view'), { ssr: false })
 
 const PIPELINE_OPTIONS = [
   { value: 'NONE', label: 'Neutro', color: 'bg-gray-700 text-gray-300' },
@@ -543,18 +546,21 @@ export default function ListingDetailClient() {
           {/* Mapa (se tiver coordenadas) */}
           {listing.lat && listing.lng && (
             <div className="bg-gray-900 border border-gray-800 rounded-xl p-4">
-              <p className="text-xs text-gray-500 font-medium uppercase tracking-wider mb-3">Localização</p>
-              <a href={`https://www.google.com/maps?q=${listing.lat},${listing.lng}`}
-                target="_blank" rel="noopener noreferrer"
-                className="block w-full">
-                <img
-                  src={`https://maps.googleapis.com/maps/api/staticmap?center=${listing.lat},${listing.lng}&zoom=15&size=300x150&maptype=roadmap&markers=${listing.lat},${listing.lng}`}
-                  alt="Mapa"
-                  className="w-full rounded-lg"
-                  onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
-                />
-                <p className="text-xs text-blue-400 mt-2 hover:underline">Ver no Google Maps →</p>
-              </a>
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-xs text-gray-500 font-medium uppercase tracking-wider">Localização</p>
+                <a
+                  href={`https://www.google.com/maps?q=${listing.lat},${listing.lng}`}
+                  target="_blank" rel="noopener noreferrer"
+                  className="text-xs text-blue-400 hover:underline"
+                >
+                  Abrir no Google Maps →
+                </a>
+              </div>
+              <MapView
+                listings={[{ id: listing.id, lat: listing.lat, lng: listing.lng, title: listing.title }]}
+                height="220px"
+                singlePin
+              />
             </div>
           )}
         </div>
