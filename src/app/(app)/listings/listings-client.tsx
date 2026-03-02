@@ -45,7 +45,7 @@ function ListingCard({ listing, onPipeline }: { listing: any; onPipeline: (id: s
             src={mainImage}
             alt={listing.title || ''}
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-            onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
+            onError={(e) => { const t = e.target as HTMLImageElement; t.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'%3E%3C/svg%3E"; t.style.display="none" }}
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center text-gray-700">
