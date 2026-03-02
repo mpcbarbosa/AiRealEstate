@@ -262,7 +262,9 @@ async function processItem(item: z.infer<typeof IngestItemSchema>, ingestRunId: 
 // ── Handler principal ────────────────────────────────────────────────────────
 export async function POST(req: NextRequest) {
   // Auth
-  const apiKey = req.headers.get('x-api-key') || req.nextUrl.searchParams.get('apiKey')
+  const authHeader = req.headers.get('authorization') || ""
+  const bearerKey = authHeader.startsWith('Bearer ') ? authHeader.slice(7).trim() : null
+  const apiKey = req.headers.get('x-api-key') || bearerKey || req.nextUrl.searchParams.get('apiKey')
   if (!apiKey) return NextResponse.json({ error: 'API key obrigatória' }, { status: 401 })
 
   const keyRecord = await prisma.apiKey.findFirst({
