@@ -5,7 +5,9 @@ import { generateDedupeHash, normalizeBusinessType, normalizePropertyType } from
 import { matchListingToWatchlists, notifyPriceDrop } from '@/lib/watchlist-matcher'
 import { z } from 'zod'
 
+export const maxDuration = 60 // segundos (Render suporta até 60s)
 export const dynamic = 'force-dynamic'
+
 
 const GeoSchema = z.object({
   lat: z.number().nullable().optional(),
