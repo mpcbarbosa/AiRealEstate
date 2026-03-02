@@ -232,10 +232,20 @@ export default function ListingsClient() {
             <Filter className="w-4 h-4" />
             Filtros{activeFiltersCount > 0 ? ` (${activeFiltersCount})` : ''}
           </button>
+          <button
+            onClick={() => setView(view === 'map' ? 'grid' : 'map')}
+            className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+              view === 'map'
+                ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/25'
+                : 'bg-gray-800 border border-gray-700 text-gray-300 hover:bg-gray-700 hover:text-white hover:border-gray-600'
+            }`}
+          >
+            <Map className="w-4 h-4" />
+            Mapa
+          </button>
           <div className="flex rounded-lg bg-gray-800 border border-gray-700 p-0.5">
             <button onClick={() => setView('grid')} title="Grelha" className={`p-1.5 rounded ${view === 'grid' ? 'bg-gray-600 text-white' : 'text-gray-500 hover:text-gray-300'}`}><LayoutGrid className="w-4 h-4" /></button>
             <button onClick={() => setView('list')} title="Lista" className={`p-1.5 rounded ${view === 'list' ? 'bg-gray-600 text-white' : 'text-gray-500 hover:text-gray-300'}`}><LayoutList className="w-4 h-4" /></button>
-            <button onClick={() => setView('map')} title="Mapa" className={`p-1.5 rounded ${view === 'map' ? 'bg-gray-600 text-white' : 'text-gray-500 hover:text-gray-300'}`}><Map className="w-4 h-4" /></button>
           </div>
         </div>
       </div>
