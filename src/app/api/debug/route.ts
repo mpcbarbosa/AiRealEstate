@@ -1,28 +1,22 @@
-import { NextResponse } from 'next/server'
-import { existsSync, readFileSync } from 'fs'
+import { NextResponse, NextRequest } from 'next/server'
+import { existsSync, readdirSync } from 'fs'
 import path from 'path'
-import { evalManifest } from 'next/dist/server/load-manifest'
 
 export const dynamic = 'force-dynamic'
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   const distDir = path.join(process.cwd(), '.next')
-  const manifestPath = path.join(distDir, 'server', 'app', 'page_client-reference-manifest.js')
+  const appDir = path.join(distDir, 'server', 'app')
   
-  try {
-    const context = evalManifest(manifestPath, false)
-    const manifest = (context as any).__RSC_MANIFEST?.['/page']
-    const clientModuleKeys = manifest?.clientModules ? Object.keys(manifest.clientModules) : []
-    
-    return NextResponse.json({
-      cwd: process.cwd(),
-      manifestExists: existsSync(manifestPath),
-      hasRSCManifest: !!(context as any).__RSC_MANIFEST,
-      hasPageEntry: !!manifest,
-      clientModulesCount: clientModuleKeys.length,
-      firstClientModuleKey: clientModuleKeys[0] || null,
-    })
-  } catch(e: any) {
-    return NextResponse.json({ error: e.message, cwd: process.cwd() })
-  }
+  const manifests = existsSync(appDir) 
+    ? readdirSync(appDir, {recursive: true})
+        .filter((f: any) => f.toString().includes('client-reference-manifest'))
+        .map((f: any) => f.toString())
+    : []
+
+  return NextResponse.json({
+    cwd: process.cwd(),
+    manifests,
+    appDirExists: existsSync(appDir),
+  })
 }
