@@ -288,11 +288,8 @@ export async function POST(req: NextRequest) {
   // Criar IngestRun
   const run = await prisma.ingestRun.create({
     data: {
-      userId: keyRecord.userId,
       source: payload.source || 'gobii',
-      agent: payload.agent,
       status: 'PROCESSING',
-      itemCount: payload.items.length,
     },
   })
 
@@ -316,7 +313,16 @@ export async function POST(req: NextRequest) {
 
   await prisma.ingestRun.update({
     where: { id: run.id },
-    data: { status: 'DONE', stats: stats as any },
+    data: {
+      status: 'DONE',
+      received: stats.received,
+      created: stats.created,
+      updated: stats.updated,
+      deduped: stats.deduped,
+      rejected: stats.rejected,
+      errors: errors.slice(0, 10) as any,
+      finishedAt: new Date(),
+    },
   })
 
   return NextResponse.json({ runId: run.id, stats, errors: errors.slice(0, 10) })
