@@ -381,7 +381,7 @@ export async function POST(req: NextRequest) {
   // Reprocessar imagens em background (não bloqueia a resposta)
   const sourceIdsWithExternalImages = await prisma.listingSource.findMany({
     where: {
-      ingestItems: { some: { ingestRunId: run.id } },
+      updatedAt: { gte: new Date(Date.now() - 5 * 60 * 1000) }, // criados/atualizados nos últimos 5 min
     },
     select: { id: true, images: true },
   }).then(sources => sources.filter(s =>
