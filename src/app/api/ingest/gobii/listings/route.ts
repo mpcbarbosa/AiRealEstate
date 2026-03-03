@@ -29,6 +29,7 @@ const IngestItemSchema = z.object({
   sourceFamily: z.string().nullable().optional(),
   sourceName: z.string().nullable().optional(),
   sourceUrl: z.string().url('sourceUrl deve ser uma URL válida'),
+  listingStatus: z.enum(['active', 'sold', 'removed', 'expired']).optional(),
   sourceExternalId: z.string().nullable().optional(),
   title: z.string().nullable().optional(),
   description: z.string().nullable().optional(),
@@ -129,6 +130,18 @@ async function processItem(item: z.infer<typeof IngestItemSchema>, ingestRunId: 
   const dedupeHash = generateDedupeHash(item)
 
   // ── Atualizar fonte existente (UPDATED) ──────────────────────────────────
+  // Se o Gobii reportar que o anúncio saiu do mercado, marcar e sair
+  if (item.listingStatus && item.listingStatus !== 'active') {
+    const src = await prisma.listingSource.findUnique({ where: { sourceUrl: item.sourceUrl }, include: { listingMaster: true } })
+    if (src?.listingMaster) {
+      await prisma.listingMaster.update({
+        where: { id: src.listingMaster.id },
+        data: { active: false, offMarketAt: new Date(), offMarketReason: item.listingStatus },
+      })
+    }
+    return { result: 'UPDATED' }
+  }
+
   const existingSource = await prisma.listingSource.findUnique({
     where: { sourceUrl: item.sourceUrl },
     include: { listingMaster: true },

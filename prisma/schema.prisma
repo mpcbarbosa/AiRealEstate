@@ -57,6 +57,8 @@ model ListingMaster {
   lng             Float?
   features        Json?
   active          Boolean        @default(true)
+  offMarketAt     DateTime?
+  offMarketReason String?        // "sold", "removed", "expired", "unreachable"
   confidence      Float          @default(1.0)
   dedupeHash      String?        @unique
   createdAt       DateTime       @default(now())
