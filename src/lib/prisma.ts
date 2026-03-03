@@ -4,20 +4,24 @@ declare global {
   var __prisma: PrismaClient | undefined
 }
 
+function createPrisma() {
+  return new PrismaClient({
+    log: ['error'],
+    datasources: {
+      db: {
+        url: process.env.DATABASE_URL + (
+          process.env.DATABASE_URL?.includes('?') ? '&' : '?'
+        ) + 'connection_limit=3&pool_timeout=10',
+      },
+    },
+  })
+}
+
 function getPrisma(): PrismaClient {
   if (globalThis.__prisma) return globalThis.__prisma
-  const client = new PrismaClient({ log: ['error'] })
-  if (process.env.NODE_ENV !== 'production') {
-    globalThis.__prisma = client
-  }
+  const client = createPrisma()
+  globalThis.__prisma = client
   return client
 }
 
-export const prisma = new Proxy({} as PrismaClient, {
-  get(_target, prop) {
-    const client = getPrisma()
-    const value = (client as any)[prop]
-    if (typeof value === 'function') return value.bind(client)
-    return value
-  }
-})
+export const prisma = getPrisma()
