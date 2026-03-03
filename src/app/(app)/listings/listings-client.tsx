@@ -38,7 +38,7 @@ function ListingCard({ listing, onPipeline }: { listing: any; onPipeline: (id: s
   const sourceName = listing.sources?.[0]?.sourceName
 
   return (
-    <div className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden hover:border-gray-600 transition-colors group">
+    <div className={`bg-gray-900 border border-gray-800 rounded-xl overflow-hidden hover:border-gray-600 transition-colors group${!listing.active ? " opacity-60" : ""}`}>
       <div className="h-44 bg-gray-800 relative overflow-hidden">
         {mainImage ? (
           <img
@@ -61,6 +61,11 @@ function ListingCard({ listing, onPipeline }: { listing: any; onPipeline: (id: s
         {userListing?.status === 'FAVORITE' && (
           <span className="absolute top-2 right-2 text-yellow-400">
             <Star className="w-4 h-4 fill-current drop-shadow" />
+          </span>
+        )}
+        {!listing.active && (
+          <span className="absolute bottom-2 left-2 bg-red-900/90 backdrop-blur-sm text-red-200 text-xs px-2 py-0.5 rounded-md font-medium">
+            {listing.offMarketReason === 'sold' ? '🏷️ Vendido' : listing.offMarketReason === 'removed' ? 'Removido' : 'Fora do mercado'}
           </span>
         )}
       </div>
@@ -137,6 +142,7 @@ export default function ListingsClient() {
       areaMax: sp.get('areaMax') || '',
       keywords: sp.get('keywords') || '',
       status: sp.get('status') || '',
+      market: sp.get('market') || 'active',
       orderBy: sp.get('orderBy') || 'newest',
       page: parseInt(sp.get('page') || '1'),
     }
@@ -301,6 +307,15 @@ export default function ListingsClient() {
               <input type="number" value={filters.areaMin} onChange={e => updateFilter('areaMin', e.target.value)}
                 placeholder="0"
                 className="w-full bg-gray-800 border border-gray-700 rounded-lg px-2 py-1.5 text-sm text-white placeholder-gray-600" />
+            </div>
+            <div>
+              <label className="block text-xs text-gray-400 mb-1">Mercado</label>
+              <select value={(filters as any).market || 'active'} onChange={e => updateFilter('market', e.target.value)}
+                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-2 py-1.5 text-sm text-white">
+                <option value="active">Disponíveis</option>
+                <option value="off">Fora do mercado</option>
+                <option value="all">Todos</option>
+              </select>
             </div>
             <div>
               <label className="block text-xs text-gray-400 mb-1">Ordenar por</label>

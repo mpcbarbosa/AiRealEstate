@@ -28,7 +28,12 @@ export async function GET(req: NextRequest) {
   const status = searchParams.get('status')
   const orderBy = searchParams.get('orderBy') || 'newest'
 
-  const where: Record<string, any> = { active: true }
+  // Por defeito mostra só ativos; ?market=all mostra todos; ?market=off mostra só off-market
+  const market = searchParams.get('market') || 'active'
+  const where: Record<string, any> = {}
+  if (market === 'active') where.active = true
+  else if (market === 'off') where.active = false
+  // market === 'all' → sem filtro
 
   if (businessType) where.businessType = businessType
   if (propertyType) where.propertyType = propertyType
