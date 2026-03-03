@@ -76,10 +76,17 @@ export async function POST(req: NextRequest) {
       stats.unreachable++
     } else {
       // sold ou removed — marcar off-market
-      await prisma.listingMaster.update({
-        where: { id: source.listingMasterId },
-        data: { active: false, offMarketAt: new Date(), offMarketReason: status },
-      })
+      try {
+        await prisma.listingMaster.update({
+          where: { id: source.listingMasterId },
+          data: { active: false, offMarketAt: new Date(), offMarketReason: status },
+        })
+      } catch {
+        await prisma.listingMaster.update({
+          where: { id: source.listingMasterId },
+          data: { active: false },
+        })
+      }
       stats.markedOffMarket++
     }
   }
@@ -95,8 +102,8 @@ export async function GET(req: NextRequest) {
   const [active, offMarket, soldCount, removedCount] = await Promise.all([
     prisma.listingMaster.count({ where: { active: true } }),
     prisma.listingMaster.count({ where: { active: false } }),
-    prisma.listingMaster.count({ where: { active: false, offMarketReason: 'sold' } }),
-    prisma.listingMaster.count({ where: { active: false, offMarketReason: 'removed' } }),
+    prisma.listingMaster.count({ where: { active: false, offMarketReason: 'sold' } }).catch(() => 0),
+    prisma.listingMaster.count({ where: { active: false, offMarketReason: 'removed' } }).catch(() => 0),
   ])
 
   return NextResponse.json({ active, offMarket, soldCount, removedCount })

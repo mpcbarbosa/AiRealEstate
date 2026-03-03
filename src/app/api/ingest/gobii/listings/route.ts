@@ -132,13 +132,23 @@ async function processItem(item: z.infer<typeof IngestItemSchema>, ingestRunId: 
   // ── Atualizar fonte existente (UPDATED) ──────────────────────────────────
   // Se o Gobii reportar que o anúncio saiu do mercado, marcar e sair
   if (item.listingStatus && item.listingStatus !== 'active') {
-    const src = await prisma.listingSource.findUnique({ where: { sourceUrl: item.sourceUrl }, include: { listingMaster: true } })
-    if (src?.listingMaster) {
-      await prisma.listingMaster.update({
-        where: { id: src.listingMaster.id },
-        data: { active: false, offMarketAt: new Date(), offMarketReason: item.listingStatus },
-      })
-    }
+    try {
+      const src = await prisma.listingSource.findUnique({ where: { sourceUrl: item.sourceUrl }, include: { listingMaster: true } })
+      if (src?.listingMaster) {
+        // Tentar com campos novos; se colunas não existirem ainda, fallback sem eles
+        try {
+          await prisma.listingMaster.update({
+            where: { id: src.listingMaster.id },
+            data: { active: false, offMarketAt: new Date(), offMarketReason: item.listingStatus },
+          })
+        } catch {
+          await prisma.listingMaster.update({
+            where: { id: src.listingMaster.id },
+            data: { active: false },
+          })
+        }
+      }
+    } catch {}
     return { result: 'UPDATED' }
   }
 
