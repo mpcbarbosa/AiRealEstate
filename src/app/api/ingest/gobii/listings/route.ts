@@ -273,8 +273,6 @@ export async function POST(req: NextRequest) {
   })
   if (!keyRecord) return NextResponse.json({ error: 'API key inválida' }, { status: 401 })
 
-  const limited = await rateLimit(keyRecord.userId, 100, 60)
-  if (limited) return NextResponse.json({ error: 'Rate limit excedido' }, { status: 429 })
 
   let body: any
   try { body = await req.json() }
