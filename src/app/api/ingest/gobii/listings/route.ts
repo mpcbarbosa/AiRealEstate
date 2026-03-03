@@ -354,5 +354,67 @@ export async function POST(req: NextRequest) {
     },
   })
 
+  // Reprocessar imagens em background (não bloqueia a resposta)
+  const sourceIdsWithExternalImages = await prisma.listingSource.findMany({
+    where: {
+      ingestItems: { some: { ingestRunId: run.id } },
+    },
+    select: { id: true, images: true },
+  }).then(sources => sources.filter(s =>
+    (s.images as string[]).some(img => img.startsWith('http'))
+  ))
+
+  if (sourceIdsWithExternalImages.length > 0) {
+    // Fire and forget - não await
+    Promise.allSettled(
+      sourceIdsWithExternalImages.map(async (source) => {
+        const images = source.images as string[]
+        const newImages: string[] = []
+        let changed = false
+        for (let i = 0; i < images.length; i++) {
+          const img = images[i]
+          if (img.startsWith('http')) {
+            try {
+              const controller = new AbortController()
+              const timeout = setTimeout(() => controller.abort(), 8000)
+              const res = await fetch(img, {
+                signal: controller.signal,
+                headers: {
+                  'User-Agent': 'Mozilla/5.0 (compatible; ImoRadar/1.0)',
+                  'Referer': new URL(img).origin,
+                },
+              })
+              clearTimeout(timeout)
+              if (res.ok) {
+                const ct = res.headers.get('content-type') || 'image/jpeg'
+                const mimeType = ct.split(';')[0].trim()
+                if (mimeType.startsWith('image/')) {
+                  const buffer = Buffer.from(await res.arrayBuffer())
+                  if (buffer.length <= 5 * 1024 * 1024) {
+                    const stored = await prisma.storedImage.upsert({
+                      where: { sourceId_index: { sourceId: source.id, index: i } },
+                      create: { sourceId: source.id, index: i, mimeType, data: buffer, size: buffer.length },
+                      update: { mimeType, data: buffer, size: buffer.length },
+                    })
+                    newImages.push(`/api/images/${stored.id}`)
+                    changed = true
+                    continue
+                  }
+                }
+              }
+            } catch {}
+          }
+          newImages.push(img)
+        }
+        if (changed) {
+          await prisma.listingSource.update({
+            where: { id: source.id },
+            data: { images: newImages },
+          })
+        }
+      })
+    ).catch(() => {})
+  }
+
   return NextResponse.json({ runId: run.id, stats, errors: errors.slice(0, 10) })
 }
