@@ -84,8 +84,37 @@ async function processImages(images: string[], sourceId: string): Promise<string
       } catch {
         // Falhou a processar base64 — ignorar esta imagem
       }
+    } else if (img.startsWith('http://') || img.startsWith('https://')) {
+      // URL externa — tentar download e guardar como StoredImage
+      try {
+        const controller = new AbortController()
+        const timeout = setTimeout(() => controller.abort(), 8000)
+        const res = await fetch(img, {
+          signal: controller.signal,
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (compatible; ImoRadar/1.0)',
+            'Referer': new URL(img).origin,
+          },
+        })
+        clearTimeout(timeout)
+        if (!res.ok) { result.push(img); continue }
+        const contentType = res.headers.get('content-type') || 'image/jpeg'
+        const mimeType = contentType.split(';')[0].trim()
+        if (!mimeType.startsWith('image/')) { result.push(img); continue }
+        const arrayBuffer = await res.arrayBuffer()
+        const buffer = Buffer.from(arrayBuffer)
+        if (buffer.length > 5 * 1024 * 1024) { result.push(img); continue } // max 5MB
+        const stored = await prisma.storedImage.upsert({
+          where: { sourceId_index: { sourceId, index: i } },
+          create: { sourceId, index: i, mimeType, data: buffer, size: buffer.length },
+          update: { mimeType, data: buffer, size: buffer.length },
+        })
+        result.push(`/api/images/${stored.id}`)
+      } catch {
+        // Download falhou — manter URL original como fallback
+        result.push(img)
+      }
     } else {
-      // URL normal — manter como está
       result.push(img)
     }
   }
