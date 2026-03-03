@@ -313,6 +313,7 @@ async function processItem(item: z.infer<typeof IngestItemSchema>, ingestRunId: 
 
 // ── Handler principal ────────────────────────────────────────────────────────
 export async function POST(req: NextRequest) {
+  try {
   // Auth
   const authHeader = req.headers.get('authorization') || ""
   const bearerKey = authHeader.startsWith('Bearer ') ? authHeader.slice(7).trim() : null
@@ -440,4 +441,8 @@ export async function POST(req: NextRequest) {
   }
 
   return NextResponse.json({ runId: run.id, stats, errors: errors.slice(0, 10) })
+  } catch (e: any) {
+    console.error('WEBHOOK 500:', e.message, e.stack)
+    return NextResponse.json({ error: e.message, stack: e.stack?.split('\n').slice(0,3) }, { status: 500 })
+  }
 }
