@@ -307,6 +307,7 @@ async function processItem(item: z.infer<typeof IngestItemSchema>, ingestRunId: 
       images: [],
       rawPayload: (item.raw as any) || null,
       capturedAt: item.capturedAt ? new Date(item.capturedAt) : new Date(),
+      publishedAt: item.publishedAt ? new Date(item.publishedAt) : null,
     },
   })
 
