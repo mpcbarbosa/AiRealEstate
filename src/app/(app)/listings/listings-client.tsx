@@ -78,6 +78,18 @@ function ListingCard({ listing, onPipeline }: { listing: any; onPipeline: (id: s
           </div>
         </div>
 
+        {(() => {
+          const ref = listing.sources?.[0]?.publishedAt || listing.createdAt
+          if (!ref) return null
+          const days = Math.floor((Date.now() - new Date(ref).getTime()) / (1000 * 60 * 60 * 24))
+          const label = listing.sources?.[0]?.publishedAt ? 'no mercado' : 'capturado'
+          return (
+            <p className="text-xs text-gray-600 mb-2">
+              {days === 0 ? 'Hoje' : days === 1 ? '1 dia' : `${days} dias`} {label}
+            </p>
+          )
+        })()}
+
         <div className="flex items-center gap-2">
           <Link
             href={`/listings/${listing.id}`}
