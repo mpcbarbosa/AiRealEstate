@@ -70,22 +70,18 @@ function ListingCard({ listing, onPipeline }: { listing: any; onPipeline: (id: s
           </p>
         )}
 
-        <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center justify-between mb-1">
           <span className="text-blue-400 font-bold text-sm">{formatPrice(listing.priceEur)}</span>
           <div className="flex items-center gap-2 text-xs text-gray-500">
             {listing.typology && <span className="bg-gray-800 px-1.5 py-0.5 rounded">{listing.typology}</span>}
             {listing.areaM2 && <span>{formatArea(listing.areaM2)}</span>}
           </div>
         </div>
-
         {listing.sources?.[0]?.publishedAt && (() => {
           const days = Math.floor((Date.now() - new Date(listing.sources[0].publishedAt).getTime()) / (1000 * 60 * 60 * 24))
-          return (
-            <p className="text-xs text-gray-600 mb-2">
-              {days === 0 ? 'Publicado hoje' : days === 1 ? '1 dia no mercado' : `${days} dias no mercado`}
-            </p>
-          )
+          return <p className="text-xs text-gray-500 mb-2">{days === 0 ? 'Publicado hoje' : days === 1 ? '1 dia no mercado' : `${days} dias no mercado`}</p>
         })()}
+        {!listing.sources?.[0]?.publishedAt && <div className="mb-2" />}
 
         <div className="flex items-center gap-2">
           <Link

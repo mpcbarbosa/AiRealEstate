@@ -510,6 +510,15 @@ export default function ListingDetailClient() {
             {listing.areaM2 && listing.priceEur && (
               <p className="text-sm text-gray-500 mt-1">{formatPrice(listing.priceEur / listing.areaM2)}/m²</p>
             )}
+            {listing.sources?.[0]?.publishedAt && (() => {
+              const days = Math.floor((Date.now() - new Date(listing.sources[0].publishedAt).getTime()) / (1000 * 60 * 60 * 24))
+              return (
+                <p className="text-sm text-gray-400 mt-1">
+                  📅 {new Date(listing.sources[0].publishedAt).toLocaleDateString('pt-PT')}
+                  <span className="text-gray-500"> ({days === 0 ? 'hoje' : days === 1 ? '1 dia' : `${days} dias`} no mercado)</span>
+                </p>
+              )
+            })()}
             <div className="flex gap-3 mt-3 text-sm text-gray-400">
               {listing.typology && <span className="bg-gray-800 px-2 py-1 rounded-lg">{listing.typology}</span>}
               {listing.areaM2 && <span className="bg-gray-800 px-2 py-1 rounded-lg">{formatArea(listing.areaM2)}</span>}
