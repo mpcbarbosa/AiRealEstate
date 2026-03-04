@@ -77,7 +77,7 @@ export async function GET(req: NextRequest) {
       take: limit,
       orderBy: orderByMap[orderBy] || { createdAt: 'desc' },
       include: {
-        sources: { select: { id: true, sourceName: true, sourceUrl: true, images: true } },
+        sources: { select: { id: true, sourceName: true, sourceUrl: true, images: true, publishedAt: true } },
         userListings: { where: { userId }, select: { status: true, favorite: true } },
         _count: { select: { notes: { where: { userId } }, tasks: { where: { userId } } } },
       },
