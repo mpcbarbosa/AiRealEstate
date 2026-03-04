@@ -227,247 +227,202 @@ export default function ListingDetailClient() {
   const allImages = proxyImageUrls(listing.sources?.flatMap((s: any) => s.images || []) || [])
   const mainSource = listing.sources?.[0]
 
+  const daysOnMarket = mainSource?.publishedAt
+    ? Math.floor((Date.now() - new Date(mainSource.publishedAt).getTime()) / (1000 * 60 * 60 * 24))
+    : null
+
   return (
-    <div className="max-w-6xl mx-auto">
+    <div className="max-w-5xl mx-auto">
+
       {/* Header */}
-      <div className="flex items-center gap-3 mb-6">
+      <div className="flex items-center gap-3 mb-8">
         <button onClick={() => router.back()}
           className="p-2 rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-400 hover:text-white transition">
           <ArrowLeft className="w-4 h-4" />
         </button>
         <div className="flex-1 min-w-0">
-          <h1 className="text-xl font-bold text-white truncate">{listing.title || 'Sem título'}</h1>
+          <h1 className="text-xl font-bold text-white leading-tight">{listing.title || 'Sem título'}</h1>
           {listing.locationText && (
             <p className="text-sm text-gray-400 flex items-center gap-1 mt-0.5">
-              <MapPin className="w-3.5 h-3.5" />{listing.locationText}
+              <MapPin className="w-3.5 h-3.5 shrink-0" />{listing.locationText}
             </p>
           )}
         </div>
         {mainSource?.sourceUrl && (
           <a href={mainSource.sourceUrl} target="_blank" rel="noopener noreferrer"
-            className="flex items-center gap-2 px-3 py-2 bg-gray-800 hover:bg-gray-700 text-gray-300 hover:text-white rounded-lg text-sm transition">
+            className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-sm font-medium transition shrink-0">
             <ExternalLink className="w-4 h-4" />
             Ver anúncio
           </a>
         )}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Coluna esquerda */}
-        <div className="lg:col-span-2 space-y-4">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
 
-          {/* Tabs */}
-          <div className="flex gap-1 bg-gray-800/50 rounded-xl p-1 border border-gray-800">
-            {([
-              { key: 'info', label: 'Informação' },
-              { key: 'sources', label: `Fontes (${listing.sources?.length || 0})` },
-              { key: 'history', label: `Histórico (${listing.history?.length || 0})` },
-              { key: 'notes', label: `Notas (${listing.notes?.length || 0})` },
-              { key: 'tasks', label: `Tarefas (${listing.tasks?.length || 0})` },
-            ] as const).map(t => (
-              <button key={t.key} onClick={() => setTab(t.key)}
-                className={`flex-1 py-2 text-xs font-medium rounded-lg transition ${tab === t.key ? 'bg-gray-700 text-white shadow' : 'text-gray-400 hover:text-white'}`}>
-                {t.label}
+        {/* Coluna principal */}
+        <div className="lg:col-span-2 space-y-6">
+
+          {/* Preço em destaque */}
+          <div>
+            <div className="flex items-baseline gap-3 flex-wrap">
+              <span className="text-4xl font-bold text-blue-400">{formatPrice(listing.priceEur)}</span>
+              {listing.areaM2 && listing.priceEur && (
+                <span className="text-lg text-gray-500">{formatPrice(listing.priceEur / listing.areaM2)}/m²</span>
+              )}
+            </div>
+            {daysOnMarket !== null && (
+              <p className="text-sm text-gray-400 mt-1">
+                📅 {new Date(mainSource.publishedAt).toLocaleDateString('pt-PT')}
+                <span className="text-gray-500 ml-1">· {daysOnMarket === 0 ? 'publicado hoje' : daysOnMarket === 1 ? '1 dia no mercado' : `${daysOnMarket} dias no mercado`}</span>
+              </p>
+            )}
+          </div>
+
+          {/* Atributos */}
+          <div className="flex flex-wrap gap-2">
+            {listing.typology && <span className="bg-gray-800 text-white text-sm font-medium px-3 py-1.5 rounded-lg">{listing.typology}</span>}
+            {listing.areaM2 && <span className="bg-gray-800 text-white text-sm font-medium px-3 py-1.5 rounded-lg">{formatArea(listing.areaM2)}</span>}
+            {listing.propertyType && <span className="bg-gray-800 text-gray-300 text-sm px-3 py-1.5 rounded-lg">{PROPERTY_TYPE_LABELS[listing.propertyType]}</span>}
+            {listing.businessType && <span className="bg-gray-800 text-gray-300 text-sm px-3 py-1.5 rounded-lg">{BUSINESS_TYPE_LABELS[listing.businessType]}</span>}
+            {!listing.active && (
+              <span className="bg-red-900/60 text-red-300 text-sm px-3 py-1.5 rounded-lg font-medium">
+                {listing.offMarketReason === 'sold' ? '🏷️ Vendido' : 'Removido do mercado'}
+              </span>
+            )}
+          </div>
+
+          {/* Descrição */}
+          {listing.description && (
+            <p className="text-sm text-gray-300 leading-relaxed whitespace-pre-line">{listing.description}</p>
+          )}
+
+          {/* Características */}
+          {listing.features && Object.keys(listing.features).length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {Object.entries(listing.features).map(([k, v]: any) => (
+                <span key={k} className={`text-xs px-2 py-1 rounded-lg ${v ? 'bg-green-500/10 text-green-400 border border-green-500/20' : 'bg-gray-800 text-gray-600 line-through'}`}>
+                  {k}
+                </span>
+              ))}
+            </div>
+          )}
+
+          {/* Fontes */}
+          <div>
+            <p className="text-xs text-gray-500 uppercase tracking-wider font-medium mb-3">
+              {listing.sources?.length === 1 ? '1 fonte' : `${listing.sources?.length} fontes`}
+            </p>
+            <div className="space-y-2">
+              {listing.sources?.map((s: any) => (
+                <div key={s.id} className="flex items-center justify-between bg-gray-800/60 rounded-xl px-4 py-3">
+                  <div className="flex items-center gap-3">
+                    <span className="text-sm font-medium text-white">{s.sourceName || 'Desconhecido'}</span>
+                    {s.sourceFamily && <span className="text-xs text-gray-500">({s.sourceFamily})</span>}
+                    {s.publishedAt && (
+                      <span className="text-xs text-gray-500">· publicado {new Date(s.publishedAt).toLocaleDateString('pt-PT')}</span>
+                    )}
+                    {s.contacts?.agencyName && (
+                      <span className="text-xs text-gray-500">· {s.contacts.agencyName}</span>
+                    )}
+                  </div>
+                  <a href={s.sourceUrl} target="_blank" rel="noopener noreferrer"
+                    className="flex items-center gap-1 text-xs text-blue-400 hover:text-blue-300 transition shrink-0">
+                    Ver <ExternalLink className="w-3 h-3" />
+                  </a>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Histórico */}
+          {listing.history?.length > 0 && (
+            <div>
+              <p className="text-xs text-gray-500 uppercase tracking-wider font-medium mb-3">Histórico</p>
+              <div className="space-y-1">
+                {listing.history.map((h: any) => (
+                  <div key={h.id} className="flex items-center gap-3 py-2 border-b border-gray-800/50 last:border-0">
+                    {h.changeType === 'PRICE_CHANGE' && <span className="text-xs bg-orange-500/20 text-orange-300 px-2 py-0.5 rounded shrink-0">💰 Preço</span>}
+                    {h.changeType === 'CREATED' && <span className="text-xs bg-green-500/20 text-green-300 px-2 py-0.5 rounded shrink-0">✨ Criado</span>}
+                    {h.changeType === 'FIELD_UPDATE' && <span className="text-xs bg-blue-500/20 text-blue-300 px-2 py-0.5 rounded shrink-0">📝 Atualizado</span>}
+                    {h.changeType === 'DEACTIVATED' && <span className="text-xs bg-red-500/20 text-red-300 px-2 py-0.5 rounded shrink-0">🚫 Inativo</span>}
+                    <p className="flex-1 text-xs text-gray-400">
+                      {h.oldValue && h.newValue ? <><span className="line-through text-gray-600">{h.oldValue}</span> → <span className="text-white">{h.newValue}</span></> : h.note || '—'}
+                    </p>
+                    <span className="text-xs text-gray-600 shrink-0">{formatDate(h.createdAt)}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Notas */}
+          <div>
+            <p className="text-xs text-gray-500 uppercase tracking-wider font-medium mb-3">Notas</p>
+            <div className="flex gap-2 mb-3">
+              <textarea value={newNote} onChange={e => setNewNote(e.target.value)}
+                placeholder="Escreve uma nota…"
+                rows={2}
+                onKeyDown={e => { if (e.key === 'Enter' && e.metaKey) addNote() }}
+                className="flex-1 bg-gray-800 border border-gray-700 rounded-xl px-3 py-2 text-sm text-white placeholder-gray-500 resize-none focus:outline-none focus:border-blue-500" />
+              <button onClick={addNote} disabled={saving || !newNote.trim()}
+                className="px-3 bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white rounded-xl transition">
+                <Plus className="w-4 h-4" />
               </button>
+            </div>
+            {listing.notes?.length === 0 && <p className="text-gray-600 text-sm">Sem notas ainda</p>}
+            {listing.notes?.map((n: any) => (
+              <div key={n.id} className="bg-gray-800 rounded-xl p-3 flex items-start gap-2 mb-2">
+                <p className="flex-1 text-sm text-gray-300 leading-relaxed">{n.content}</p>
+                <div className="flex items-center gap-2 shrink-0 mt-0.5">
+                  <span className="text-xs text-gray-600">{formatDate(n.createdAt)}</span>
+                  <button onClick={() => deleteNote(n.id)} className="text-gray-600 hover:text-red-400 transition">
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </div>
             ))}
           </div>
 
-          {/* Conteúdo das tabs */}
-          <div className="bg-gray-900 border border-gray-800 rounded-xl p-5">
-
-            {tab === 'info' && (
-              <div className="space-y-4">
-                {/* Preço + info chave inline */}
-                <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
-                  <span className="text-2xl font-bold text-blue-400">{formatPrice(listing.priceEur)}</span>
-                  {listing.areaM2 && listing.priceEur && (
-                    <span className="text-sm text-gray-500">{formatPrice(listing.priceEur / listing.areaM2)}/m²</span>
-                  )}
-                  {listing.sources?.[0]?.publishedAt && (() => {
-                    const days = Math.floor((Date.now() - new Date(listing.sources[0].publishedAt).getTime()) / (1000 * 60 * 60 * 24))
-                    return <span className="text-sm text-gray-400">📅 {new Date(listing.sources[0].publishedAt).toLocaleDateString('pt-PT')} <span className="text-gray-500">({days === 0 ? 'hoje' : `${days} dias`} no mercado)</span></span>
-                  })()}
-                </div>
-
-                {/* Atributos em linha */}
-                <div className="flex flex-wrap gap-2">
-                  {listing.typology && <span className="bg-gray-800 text-white text-sm px-3 py-1 rounded-lg">{listing.typology}</span>}
-                  {listing.areaM2 && <span className="bg-gray-800 text-white text-sm px-3 py-1 rounded-lg">{formatArea(listing.areaM2)}</span>}
-                  {listing.propertyType && <span className="bg-gray-800 text-gray-300 text-sm px-3 py-1 rounded-lg">{PROPERTY_TYPE_LABELS[listing.propertyType]}</span>}
-                  {listing.businessType && <span className="bg-gray-800 text-gray-300 text-sm px-3 py-1 rounded-lg">{BUSINESS_TYPE_LABELS[listing.businessType]}</span>}
-                  {listing.locationText && <span className="bg-gray-800 text-gray-300 text-sm px-3 py-1 rounded-lg flex items-center gap-1"><MapPin className="w-3.5 h-3.5" />{listing.locationText}</span>}
-                </div>
-
-                {/* Descrição */}
-                {listing.description && (
-                  <p className="text-sm text-gray-300 leading-relaxed whitespace-pre-line">{listing.description}</p>
+          {/* Tarefas */}
+          <div>
+            <p className="text-xs text-gray-500 uppercase tracking-wider font-medium mb-3">Tarefas</p>
+            <div className="flex gap-2 mb-3">
+              <input value={newTask.title} onChange={e => setNewTask(t => ({ ...t, title: e.target.value }))}
+                placeholder="Nova tarefa…"
+                onKeyDown={e => { if (e.key === 'Enter') addTask() }}
+                className="flex-1 bg-gray-800 border border-gray-700 rounded-xl px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-blue-500" />
+              <input type="date" value={newTask.dueDate} onChange={e => setNewTask(t => ({ ...t, dueDate: e.target.value }))}
+                className="bg-gray-800 border border-gray-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500" />
+              <button onClick={addTask} disabled={saving || !newTask.title.trim()}
+                className="px-3 bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white rounded-xl transition">
+                <Plus className="w-4 h-4" />
+              </button>
+            </div>
+            {listing.tasks?.length === 0 && <p className="text-gray-600 text-sm">Sem tarefas ainda</p>}
+            {listing.tasks?.map((t: any) => (
+              <div key={t.id} className={`flex items-center gap-3 rounded-xl p-3 mb-2 transition ${t.done ? 'bg-gray-800/50' : 'bg-gray-800'}`}>
+                <input type="checkbox" checked={t.done} onChange={() => toggleTask(t.id, t.done)}
+                  className="w-4 h-4 rounded accent-blue-500 shrink-0" />
+                <span className={`flex-1 text-sm ${t.done ? 'line-through text-gray-600' : 'text-gray-300'}`}>{t.title}</span>
+                {t.dueDate && (
+                  <span className={`text-xs flex items-center gap-1 ${new Date(t.dueDate) < new Date() && !t.done ? 'text-red-400' : 'text-gray-500'}`}>
+                    <Clock className="w-3 h-3" />{formatDate(t.dueDate)}
+                  </span>
                 )}
-
-                {/* Características */}
-                {listing.features && Object.keys(listing.features).length > 0 && (
-                  <div className="flex flex-wrap gap-2">
-                    {Object.entries(listing.features).map(([k, v]: any) => (
-                      <span key={k} className={`text-xs px-2 py-1 rounded-lg ${v ? 'bg-green-500/10 text-green-400' : 'bg-gray-800 text-gray-500 line-through'}`}>
-                        {k}
-                      </span>
-                    ))}
-                  </div>
-                )}
-
-                {/* Capturado */}
-                {listing.createdAt && (
-                  <p className="text-xs text-gray-600">Capturado em {formatDate(listing.createdAt)}</p>
-                )}
+                <button onClick={() => deleteTask(t.id)} className="text-gray-600 hover:text-red-400 transition shrink-0">
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
               </div>
-            )}
-
-            {tab === 'sources' && (
-              <div className="space-y-3">
-                <p className="text-xs text-gray-500 font-medium uppercase tracking-wider mb-3">
-                  {listing.sources?.length} fonte(s) encontrada(s)
-                </p>
-                {listing.sources?.map((s: any) => (
-                  <div key={s.id} className="border border-gray-700 rounded-xl p-4">
-                    <div className="flex items-center justify-between mb-2">
-                      <div>
-                        <span className="text-sm font-medium text-white">{s.sourceName || 'Desconhecido'}</span>
-                        {s.sourceFamily && <span className="text-xs text-gray-500 ml-2">({s.sourceFamily})</span>}
-                      </div>
-                      <a href={s.sourceUrl} target="_blank" rel="noopener noreferrer"
-                        className="flex items-center gap-1 text-xs text-blue-400 hover:text-blue-300 transition">
-                        Ver original <ExternalLink className="w-3 h-3" />
-                      </a>
-                    </div>
-                    {s.publishedAt && (
-                      <p className="text-xs text-gray-400 mt-1">
-                        📅 Publicado: <span className="text-white">{formatDate(s.publishedAt)}</span>
-                        <span className="text-gray-500 ml-2">
-                          ({Math.floor((Date.now() - new Date(s.publishedAt).getTime()) / (1000 * 60 * 60 * 24))} dias no mercado)
-                        </span>
-                      </p>
-                    )}
-                    {!s.publishedAt && s.capturedAt && (
-                      <p className="text-xs text-gray-600">Capturado: {formatDate(s.capturedAt)}</p>
-                    )}
-                    {s.contacts && (s.contacts.agencyName || s.contacts.phone) && (
-                      <div className="mt-2 pt-2 border-t border-gray-800 text-xs text-gray-400 space-y-0.5">
-                        {s.contacts.agencyName && <p>🏢 {s.contacts.agencyName}</p>}
-                        {s.contacts.phone && <p>📞 {s.contacts.phone}</p>}
-                        {s.contacts.email && <p>✉️ {s.contacts.email}</p>}
-                      </div>
-                    )}
-                    {s.images?.length > 0 && (
-                      <div className="flex gap-1.5 mt-2 overflow-x-auto">
-                        {s.images.slice(0, 5).map((img: string, i: number) => (
-                          <img key={i} src={img} alt="" className="w-14 h-10 object-cover rounded shrink-0 opacity-80 hover:opacity-100 transition" />
-                        ))}
-                        {s.images.length > 5 && <span className="text-xs text-gray-500 self-center">+{s.images.length - 5}</span>}
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {tab === 'history' && (
-              <div>
-                <p className="text-xs text-gray-500 font-medium uppercase tracking-wider mb-3">Histórico de alterações</p>
-                {listing.history?.length === 0 ? (
-                  <p className="text-gray-600 text-sm">Sem histórico de alterações</p>
-                ) : (
-                  <div className="space-y-2">
-                    {listing.history?.map((h: any) => (
-                      <div key={h.id} className="flex items-start gap-3 py-2.5 border-b border-gray-800 last:border-0">
-                        <div className="mt-0.5">
-                          {h.changeType === 'PRICE_CHANGE' && <span className="text-xs bg-orange-500/20 text-orange-300 px-2 py-0.5 rounded">💰 Preço</span>}
-                          {h.changeType === 'CREATED' && <span className="text-xs bg-green-500/20 text-green-300 px-2 py-0.5 rounded">✨ Criado</span>}
-                          {h.changeType === 'DEACTIVATED' && <span className="text-xs bg-red-500/20 text-red-300 px-2 py-0.5 rounded">🚫 Inativo</span>}
-                          {h.changeType === 'FIELD_UPDATE' && <span className="text-xs bg-blue-500/20 text-blue-300 px-2 py-0.5 rounded">📝 Atualizado</span>}
-                        </div>
-                        <div className="flex-1">
-                          {h.oldValue && h.newValue ? (
-                            <p className="text-xs text-gray-400">
-                              <span className="line-through text-gray-600">{h.oldValue}</span>
-                              {' → '}
-                              <span className="text-white font-medium">{h.newValue}</span>
-                            </p>
-                          ) : (
-                            <p className="text-xs text-gray-400">{h.note || '—'}</p>
-                          )}
-                        </div>
-                        <span className="text-xs text-gray-600 shrink-0">{formatDate(h.createdAt)}</span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-
-            {tab === 'notes' && (
-              <div className="space-y-3">
-                <div className="flex gap-2">
-                  <textarea value={newNote} onChange={e => setNewNote(e.target.value)}
-                    placeholder="Escreve uma nota sobre este imóvel…"
-                    rows={2}
-                    onKeyDown={e => { if (e.key === 'Enter' && e.metaKey) addNote() }}
-                    className="flex-1 bg-gray-800 border border-gray-700 rounded-xl px-3 py-2 text-sm text-white placeholder-gray-500 resize-none focus:outline-none focus:border-blue-500" />
-                  <button onClick={addNote} disabled={saving || !newNote.trim()}
-                    className="px-3 bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white rounded-xl transition">
-                    <Plus className="w-4 h-4" />
-                  </button>
-                </div>
-                {listing.notes?.length === 0 && <p className="text-gray-600 text-sm">Sem notas ainda</p>}
-                {listing.notes?.map((n: any) => (
-                  <div key={n.id} className="bg-gray-800 rounded-xl p-3 flex items-start gap-2">
-                    <p className="flex-1 text-sm text-gray-300 leading-relaxed">{n.content}</p>
-                    <div className="flex items-center gap-2 shrink-0 mt-0.5">
-                      <span className="text-xs text-gray-600">{formatDate(n.createdAt)}</span>
-                      <button onClick={() => deleteNote(n.id)} className="text-gray-600 hover:text-red-400 transition">
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {tab === 'tasks' && (
-              <div className="space-y-3">
-                <div className="flex gap-2">
-                  <input value={newTask.title} onChange={e => setNewTask(t => ({ ...t, title: e.target.value }))}
-                    placeholder="Nova tarefa…"
-                    onKeyDown={e => { if (e.key === 'Enter') addTask() }}
-                    className="flex-1 bg-gray-800 border border-gray-700 rounded-xl px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-blue-500" />
-                  <input type="date" value={newTask.dueDate} onChange={e => setNewTask(t => ({ ...t, dueDate: e.target.value }))}
-                    className="bg-gray-800 border border-gray-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500" />
-                  <button onClick={addTask} disabled={saving || !newTask.title.trim()}
-                    className="px-3 bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white rounded-xl transition">
-                    <Plus className="w-4 h-4" />
-                  </button>
-                </div>
-                {listing.tasks?.length === 0 && <p className="text-gray-600 text-sm">Sem tarefas ainda</p>}
-                {listing.tasks?.map((t: any) => (
-                  <div key={t.id} className={`flex items-center gap-3 rounded-xl p-3 transition ${t.done ? 'bg-gray-800/50' : 'bg-gray-800'}`}>
-                    <input type="checkbox" checked={t.done} onChange={() => toggleTask(t.id, t.done)}
-                      className="w-4 h-4 rounded accent-blue-500 shrink-0" />
-                    <span className={`flex-1 text-sm ${t.done ? 'line-through text-gray-600' : 'text-gray-300'}`}>{t.title}</span>
-                    {t.dueDate && (
-                      <span className={`text-xs flex items-center gap-1 ${new Date(t.dueDate) < new Date() && !t.done ? 'text-red-400' : 'text-gray-500'}`}>
-                        <Clock className="w-3 h-3" />{formatDate(t.dueDate)}
-                      </span>
-                    )}
-                    <button onClick={() => deleteTask(t.id)} className="text-gray-600 hover:text-red-400 transition shrink-0">
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
+            ))}
           </div>
+
+          <p className="text-xs text-gray-600 pt-2">Capturado em {formatDate(listing.createdAt)}</p>
+
         </div>
 
-        {/* Coluna direita */}
+        {/* Sidebar */}
         <div className="space-y-4">
+
           {/* Pipeline */}
           <div className="bg-gray-900 border border-gray-800 rounded-xl p-4">
             <p className="text-xs text-gray-500 font-medium uppercase tracking-wider mb-3">Estado Pipeline</p>
@@ -516,17 +471,15 @@ export default function ListingDetailClient() {
             </div>
           )}
 
-          {/* Mapa (se tiver coordenadas) */}
+          {/* Mapa */}
           {listing.lat && listing.lng && (
             <div className="bg-gray-900 border border-gray-800 rounded-xl p-4">
               <div className="flex items-center justify-between mb-3">
                 <p className="text-xs text-gray-500 font-medium uppercase tracking-wider">Localização</p>
-                <a
-                  href={`https://www.google.com/maps?q=${listing.lat},${listing.lng}`}
+                <a href={`https://www.google.com/maps?q=${listing.lat},${listing.lng}`}
                   target="_blank" rel="noopener noreferrer"
-                  className="text-xs text-blue-400 hover:underline"
-                >
-                  Abrir no Google Maps →
+                  className="text-xs text-blue-400 hover:underline">
+                  Google Maps →
                 </a>
               </div>
               <MapView
@@ -536,6 +489,7 @@ export default function ListingDetailClient() {
               />
             </div>
           )}
+
         </div>
       </div>
     </div>
