@@ -311,17 +311,23 @@ export default function ListingDetailClient() {
                       <div><p className="text-xs text-gray-500">Preço/m²</p><p className="text-sm text-white font-medium">{formatPrice(listing.priceEur / listing.areaM2)}</p></div>
                     </div>
                   )}
-                  {(() => {
-                    const pubDate = listing.sources?.[0]?.publishedAt
-                    const ref = pubDate || listing.createdAt
-                    if (!ref) return null
-                    const days = Math.floor((Date.now() - new Date(ref).getTime()) / (1000 * 60 * 60 * 24))
+                  {listing.createdAt && (
+                    <div className="flex items-start gap-2">
+                      <Calendar className="w-4 h-4 text-gray-500 mt-0.5" />
+                      <div>
+                        <p className="text-xs text-gray-500">Capturado</p>
+                        <p className="text-sm text-white font-medium">{formatDate(listing.createdAt)}</p>
+                      </div>
+                    </div>
+                  )}
+                  {listing.sources?.[0]?.publishedAt && (() => {
+                    const days = Math.floor((Date.now() - new Date(listing.sources[0].publishedAt).getTime()) / (1000 * 60 * 60 * 24))
                     return (
                       <div className="flex items-start gap-2">
                         <Calendar className="w-4 h-4 text-gray-500 mt-0.5" />
                         <div>
-                          <p className="text-xs text-gray-500">{pubDate ? 'Publicado' : 'Capturado'}</p>
-                          <p className="text-sm text-white font-medium">{formatDate(ref)}</p>
+                          <p className="text-xs text-gray-500">Publicado no portal</p>
+                          <p className="text-sm text-white font-medium">{formatDate(listing.sources[0].publishedAt)}</p>
                           <p className="text-xs text-gray-500">{days === 0 ? 'Hoje' : days === 1 ? '1 dia no mercado' : `${days} dias no mercado`}</p>
                         </div>
                       </div>
