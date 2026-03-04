@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { rateLimit } from '@/lib/rate-limit'
-import { generateDedupeHash, normalizeBusinessType, normalizePropertyType } from '@/lib/dedupe'
+import { generateDedupeHash, isSameListing, normalizeBusinessType, normalizePropertyType } from '@/lib/dedupe'
 import { matchListingToWatchlists, notifyPriceDrop } from '@/lib/watchlist-matcher'
 import { z } from 'zod'
 
@@ -222,13 +222,42 @@ async function processItem(item: z.infer<typeof IngestItemSchema>, ingestRunId: 
     return { result: 'UPDATED', listingId: master.id }
   }
 
-  // ── Dedupe fuzzy (DEDUPED) ───────────────────────────────────────────────
+  // ── Nível 1: Dedupe por hash exato ──────────────────────────────────────
   const existingByHash = await prisma.listingMaster.findUnique({ where: { dedupeHash } })
 
-  if (existingByHash) {
+  // ── Nível 2: Dedupe cross-source (mesmo imóvel, fontes diferentes) ────────
+  // Só aplica se não encontrou por hash E tem dados suficientes para comparar
+  let crossSourceMatch: typeof existingByHash | null = null
+  if (!existingByHash && item.priceEur && item.areaM2 && item.locationText) {
+    const priceTolerance = item.priceEur * 0.05
+    const areaTolerance = item.areaM2 * 0.08
+    const candidates = await prisma.listingMaster.findMany({
+      where: {
+        typology: item.typology || undefined,
+        propertyType: (propertyType as any) || undefined,
+        businessType: (businessType as any) || undefined,
+        priceEur: { gte: item.priceEur - priceTolerance, lte: item.priceEur + priceTolerance },
+        areaM2: { gte: item.areaM2 - areaTolerance, lte: item.areaM2 + areaTolerance },
+      },
+      take: 10,
+    })
+    crossSourceMatch = candidates.find(c => isSameListing(c, {
+      typology: item.typology,
+      priceEur: item.priceEur,
+      areaM2: item.areaM2,
+      locationText: item.locationText,
+      propertyType,
+      businessType,
+    })) || null
+  }
+
+  const dedupeTarget = existingByHash || crossSourceMatch
+  const dedupeReason = existingByHash ? 'Hash duplicado' : 'Cross-source match (preço/área/localização)'
+
+  if (dedupeTarget) {
     const newSource = await prisma.listingSource.create({
       data: {
-        listingMasterId: existingByHash.id,
+        listingMasterId: dedupeTarget.id,
         sourceFamily: item.sourceFamily,
         sourceName: item.sourceName,
         sourceUrl: item.sourceUrl,
@@ -237,21 +266,14 @@ async function processItem(item: z.infer<typeof IngestItemSchema>, ingestRunId: 
         images: [],
         rawPayload: (item.raw as any) || null,
         capturedAt: item.capturedAt ? new Date(item.capturedAt) : new Date(),
+        publishedAt: item.publishedAt ? new Date(item.publishedAt) : null,
       },
     })
 
-    const finalImages = await processImages(item.images, newSource.id)
-    if (finalImages.length > 0) {
-      await prisma.listingSource.update({
-        where: { id: newSource.id },
-        data: { images: finalImages },
-      })
-    }
-
     await prisma.ingestItem.create({
-      data: { ingestRunId, sourceUrl: item.sourceUrl, result: 'DEDUPED', reason: 'Hash duplicado', listingId: existingByHash.id },
+      data: { ingestRunId, sourceUrl: item.sourceUrl, result: 'DEDUPED', reason: dedupeReason, listingId: dedupeTarget.id },
     })
-    return { result: 'DEDUPED', listingId: existingByHash.id }
+    return { result: 'DEDUPED', listingId: dedupeTarget.id }
   }
 
   // ── Criar novo (CREATED) ─────────────────────────────────────────────────

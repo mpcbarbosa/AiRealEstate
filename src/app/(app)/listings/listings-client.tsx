@@ -1,5 +1,4 @@
 'use client'
-import { proxyImageUrl } from '@/lib/image-proxy'
 import LocationFilter, { LocationSelection } from '@/components/ui/location-filter'
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { useSearchParams } from 'next/navigation'
@@ -34,39 +33,25 @@ function PipelineBadge({ status }: { status?: string }) {
 
 function ListingCard({ listing, onPipeline }: { listing: any; onPipeline: (id: string, status: string) => void }) {
   const userListing = listing.userListings?.[0]
-  const mainImage = proxyImageUrl(listing.sources?.[0]?.images?.[0])
   const sourceName = listing.sources?.[0]?.sourceName
 
   return (
     <div className={`bg-gray-900 border border-gray-800 rounded-xl overflow-hidden hover:border-gray-600 transition-colors group${!listing.active ? " opacity-60" : ""}`}>
-      <div className="h-44 bg-gray-800 relative overflow-hidden">
-        {mainImage ? (
-          <img
-            src={mainImage}
-            alt={listing.title || ''}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-            onError={(e) => { const t = e.target as HTMLImageElement; t.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'%3E%3C/svg%3E"; t.style.display="none" }}
-          />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center text-gray-700">
-            <Home className="w-12 h-12" />
-          </div>
-        )}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-        {sourceName && (
-          <span className="absolute top-2 left-2 bg-black/70 backdrop-blur-sm text-white text-xs px-2 py-0.5 rounded-md">
-            {sourceName}
-          </span>
-        )}
+      <div className="px-4 pt-3 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          {sourceName && (
+            <span className="bg-gray-800 text-gray-400 text-xs px-2 py-0.5 rounded-md">
+              {sourceName}
+            </span>
+          )}
+          {!listing.active && (
+            <span className="bg-red-900/80 text-red-200 text-xs px-2 py-0.5 rounded-md font-medium">
+              {listing.offMarketReason === 'sold' ? '🏷️ Vendido' : 'Removido'}
+            </span>
+          )}
+        </div>
         {userListing?.status === 'FAVORITE' && (
-          <span className="absolute top-2 right-2 text-yellow-400">
-            <Star className="w-4 h-4 fill-current drop-shadow" />
-          </span>
-        )}
-        {!listing.active && (
-          <span className="absolute bottom-2 left-2 bg-red-900/90 backdrop-blur-sm text-red-200 text-xs px-2 py-0.5 rounded-md font-medium">
-            {listing.offMarketReason === 'sold' ? '🏷️ Vendido' : listing.offMarketReason === 'removed' ? 'Removido' : 'Fora do mercado'}
-          </span>
+          <Star className="w-4 h-4 text-yellow-400 fill-current" />
         )}
       </div>
 
