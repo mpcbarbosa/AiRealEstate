@@ -256,9 +256,6 @@ export default function ListingDetailClient() {
         {/* Coluna esquerda */}
         <div className="lg:col-span-2 space-y-4">
 
-          {/* Galeria */}
-          <ImageGallery images={allImages} title={listing.title || 'Imóvel'} />
-
           {/* Tabs */}
           <div className="flex gap-1 bg-gray-800/50 rounded-xl p-1 border border-gray-800">
             {([
@@ -279,80 +276,47 @@ export default function ListingDetailClient() {
           <div className="bg-gray-900 border border-gray-800 rounded-xl p-5">
 
             {tab === 'info' && (
-              <div className="space-y-5">
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                  {listing.businessType && (
-                    <div className="flex items-start gap-2">
-                      <Tag className="w-4 h-4 text-gray-500 mt-0.5" />
-                      <div><p className="text-xs text-gray-500">Negócio</p><p className="text-sm text-white font-medium">{BUSINESS_TYPE_LABELS[listing.businessType]}</p></div>
-                    </div>
-                  )}
-                  {listing.propertyType && (
-                    <div className="flex items-start gap-2">
-                      <Building2 className="w-4 h-4 text-gray-500 mt-0.5" />
-                      <div><p className="text-xs text-gray-500">Tipo</p><p className="text-sm text-white font-medium">{PROPERTY_TYPE_LABELS[listing.propertyType]}</p></div>
-                    </div>
-                  )}
-                  {listing.typology && (
-                    <div className="flex items-start gap-2">
-                      <Home className="w-4 h-4 text-gray-500 mt-0.5" />
-                      <div><p className="text-xs text-gray-500">Tipologia</p><p className="text-sm text-white font-medium">{listing.typology}</p></div>
-                    </div>
-                  )}
-                  {listing.areaM2 && (
-                    <div className="flex items-start gap-2">
-                      <Ruler className="w-4 h-4 text-gray-500 mt-0.5" />
-                      <div><p className="text-xs text-gray-500">Área</p><p className="text-sm text-white font-medium">{formatArea(listing.areaM2)}</p></div>
-                    </div>
-                  )}
-                  {listing.priceEur && listing.areaM2 && (
-                    <div className="flex items-start gap-2">
-                      <Euro className="w-4 h-4 text-gray-500 mt-0.5" />
-                      <div><p className="text-xs text-gray-500">Preço/m²</p><p className="text-sm text-white font-medium">{formatPrice(listing.priceEur / listing.areaM2)}</p></div>
-                    </div>
-                  )}
-                  {listing.createdAt && (
-                    <div className="flex items-start gap-2">
-                      <Calendar className="w-4 h-4 text-gray-500 mt-0.5" />
-                      <div>
-                        <p className="text-xs text-gray-500">Capturado</p>
-                        <p className="text-sm text-white font-medium">{formatDate(listing.createdAt)}</p>
-                      </div>
-                    </div>
+              <div className="space-y-4">
+                {/* Preço + info chave inline */}
+                <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
+                  <span className="text-2xl font-bold text-blue-400">{formatPrice(listing.priceEur)}</span>
+                  {listing.areaM2 && listing.priceEur && (
+                    <span className="text-sm text-gray-500">{formatPrice(listing.priceEur / listing.areaM2)}/m²</span>
                   )}
                   {listing.sources?.[0]?.publishedAt && (() => {
                     const days = Math.floor((Date.now() - new Date(listing.sources[0].publishedAt).getTime()) / (1000 * 60 * 60 * 24))
-                    return (
-                      <div className="flex items-start gap-2">
-                        <Calendar className="w-4 h-4 text-gray-500 mt-0.5" />
-                        <div>
-                          <p className="text-xs text-gray-500">Publicado no portal</p>
-                          <p className="text-sm text-white font-medium">{formatDate(listing.sources[0].publishedAt)}</p>
-                          <p className="text-xs text-gray-500">{days === 0 ? 'Hoje' : days === 1 ? '1 dia no mercado' : `${days} dias no mercado`}</p>
-                        </div>
-                      </div>
-                    )
+                    return <span className="text-sm text-gray-400">📅 {new Date(listing.sources[0].publishedAt).toLocaleDateString('pt-PT')} <span className="text-gray-500">({days === 0 ? 'hoje' : `${days} dias`} no mercado)</span></span>
                   })()}
                 </div>
 
+                {/* Atributos em linha */}
+                <div className="flex flex-wrap gap-2">
+                  {listing.typology && <span className="bg-gray-800 text-white text-sm px-3 py-1 rounded-lg">{listing.typology}</span>}
+                  {listing.areaM2 && <span className="bg-gray-800 text-white text-sm px-3 py-1 rounded-lg">{formatArea(listing.areaM2)}</span>}
+                  {listing.propertyType && <span className="bg-gray-800 text-gray-300 text-sm px-3 py-1 rounded-lg">{PROPERTY_TYPE_LABELS[listing.propertyType]}</span>}
+                  {listing.businessType && <span className="bg-gray-800 text-gray-300 text-sm px-3 py-1 rounded-lg">{BUSINESS_TYPE_LABELS[listing.businessType]}</span>}
+                  {listing.locationText && <span className="bg-gray-800 text-gray-300 text-sm px-3 py-1 rounded-lg flex items-center gap-1"><MapPin className="w-3.5 h-3.5" />{listing.locationText}</span>}
+                </div>
+
+                {/* Descrição */}
                 {listing.description && (
-                  <div className="border-t border-gray-800 pt-4">
-                    <p className="text-xs text-gray-500 mb-2 font-medium uppercase tracking-wider">Descrição</p>
-                    <p className="text-sm text-gray-300 leading-relaxed whitespace-pre-line">{listing.description}</p>
+                  <p className="text-sm text-gray-300 leading-relaxed whitespace-pre-line">{listing.description}</p>
+                )}
+
+                {/* Características */}
+                {listing.features && Object.keys(listing.features).length > 0 && (
+                  <div className="flex flex-wrap gap-2">
+                    {Object.entries(listing.features).map(([k, v]: any) => (
+                      <span key={k} className={`text-xs px-2 py-1 rounded-lg ${v ? 'bg-green-500/10 text-green-400' : 'bg-gray-800 text-gray-500 line-through'}`}>
+                        {k}
+                      </span>
+                    ))}
                   </div>
                 )}
 
-                {listing.features && Object.keys(listing.features).length > 0 && (
-                  <div className="border-t border-gray-800 pt-4">
-                    <p className="text-xs text-gray-500 mb-2 font-medium uppercase tracking-wider">Características</p>
-                    <div className="flex flex-wrap gap-2">
-                      {Object.entries(listing.features).map(([k, v]: any) => (
-                        <span key={k} className={`text-xs px-2 py-1 rounded-lg ${v ? 'bg-green-500/10 text-green-400' : 'bg-gray-800 text-gray-500 line-through'}`}>
-                          {k}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
+                {/* Capturado */}
+                {listing.createdAt && (
+                  <p className="text-xs text-gray-600">Capturado em {formatDate(listing.createdAt)}</p>
                 )}
               </div>
             )}
@@ -504,32 +468,6 @@ export default function ListingDetailClient() {
 
         {/* Coluna direita */}
         <div className="space-y-4">
-          {/* Preço */}
-          <div className="bg-gray-900 border border-gray-800 rounded-xl p-5">
-            <p className="text-3xl font-bold text-blue-400">{formatPrice(listing.priceEur)}</p>
-            {listing.areaM2 && listing.priceEur && (
-              <p className="text-sm text-gray-500 mt-1">{formatPrice(listing.priceEur / listing.areaM2)}/m²</p>
-            )}
-            {listing.sources?.[0]?.publishedAt && (() => {
-              const days = Math.floor((Date.now() - new Date(listing.sources[0].publishedAt).getTime()) / (1000 * 60 * 60 * 24))
-              return (
-                <p className="text-sm text-gray-400 mt-1">
-                  📅 {new Date(listing.sources[0].publishedAt).toLocaleDateString('pt-PT')}
-                  <span className="text-gray-500"> ({days === 0 ? 'hoje' : days === 1 ? '1 dia' : `${days} dias`} no mercado)</span>
-                </p>
-              )
-            })()}
-            <div className="flex gap-3 mt-3 text-sm text-gray-400">
-              {listing.typology && <span className="bg-gray-800 px-2 py-1 rounded-lg">{listing.typology}</span>}
-              {listing.areaM2 && <span className="bg-gray-800 px-2 py-1 rounded-lg">{formatArea(listing.areaM2)}</span>}
-            </div>
-            {listing.locationText && (
-              <p className="flex items-center gap-1.5 text-sm text-gray-400 mt-3">
-                <MapPin className="w-4 h-4 shrink-0" />{listing.locationText}
-              </p>
-            )}
-          </div>
-
           {/* Pipeline */}
           <div className="bg-gray-900 border border-gray-800 rounded-xl p-4">
             <p className="text-xs text-gray-500 font-medium uppercase tracking-wider mb-3">Estado Pipeline</p>
