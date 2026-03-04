@@ -101,6 +101,7 @@ model ListingSource {
   images           String[]
   rawPayload       Json?
   capturedAt       DateTime?
+  publishedAt      DateTime?     // data de publicação no portal de origem
   createdAt        DateTime      @default(now())
   updatedAt        DateTime      @updatedAt
 

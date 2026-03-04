@@ -45,6 +45,7 @@ const IngestItemSchema = z.object({
   images: z.array(z.string()).optional().default([]),
   confidence: z.number().min(0).max(1).optional().default(1),
   hash: z.string().optional(),
+  publishedAt: z.string().nullable().optional(), // data de publicação no portal
   raw: z.record(z.any()).optional(),
 })
 

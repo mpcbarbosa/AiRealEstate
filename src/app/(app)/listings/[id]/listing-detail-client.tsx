@@ -358,7 +358,17 @@ export default function ListingDetailClient() {
                         Ver original <ExternalLink className="w-3 h-3" />
                       </a>
                     </div>
-                    {s.capturedAt && <p className="text-xs text-gray-600">Capturado: {formatDate(s.capturedAt)}</p>}
+                    {s.publishedAt && (
+                      <p className="text-xs text-gray-400 mt-1">
+                        📅 Publicado: <span className="text-white">{formatDate(s.publishedAt)}</span>
+                        <span className="text-gray-500 ml-2">
+                          ({Math.floor((Date.now() - new Date(s.publishedAt).getTime()) / (1000 * 60 * 60 * 24))} dias no mercado)
+                        </span>
+                      </p>
+                    )}
+                    {!s.publishedAt && s.capturedAt && (
+                      <p className="text-xs text-gray-600">Capturado: {formatDate(s.capturedAt)}</p>
+                    )}
                     {s.contacts && (s.contacts.agencyName || s.contacts.phone) && (
                       <div className="mt-2 pt-2 border-t border-gray-800 text-xs text-gray-400 space-y-0.5">
                         {s.contacts.agencyName && <p>🏢 {s.contacts.agencyName}</p>}
