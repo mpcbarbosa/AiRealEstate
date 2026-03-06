@@ -53,6 +53,9 @@ model ListingMaster {
   priceEur        Float?
   areaM2          Float?
   locationText    String?
+  locationRegiao  String?           // ex: "Lisboa"
+  locationConcelho String?          // ex: "Lisboa"
+  locationFreguesia String?         // ex: "Misericórdia"
   lat             Float?
   lng             Float?
   features        Json?

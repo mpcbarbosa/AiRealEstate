@@ -40,16 +40,30 @@ export async function GET(req: NextRequest) {
   if (typology) where.typology = typology
   if (location) {
     // Múltiplas localizações separadas por vírgula → OR entre localizações
-    // Dentro de cada localização "Lisboa › Misericórdia" → AND (tem de conter a parte mais específica)
     const locationParts = location.split(',').map((l: string) => l.trim()).filter(Boolean)
     const locationConditions = locationParts.map((loc: string) => {
-      // Usar apenas a parte mais específica (última após ›)
+      // "Lisboa › Misericórdia" → regiao=Lisboa, freguesia=Misericórdia
       const subParts = loc.split('›').map((p: string) => p.trim()).filter(Boolean)
-      const mostSpecific = subParts[subParts.length - 1] // ex: "Misericórdia"
-      return { locationText: { contains: mostSpecific, mode: 'insensitive' as const } }
+      if (subParts.length === 1) {
+        // Só região — filtrar por locationRegiao OU locationConcelho
+        return { OR: [
+          { locationRegiao: { equals: subParts[0], mode: 'insensitive' as const } },
+          { locationConcelho: { equals: subParts[0], mode: 'insensitive' as const } },
+          { locationText: { contains: subParts[0], mode: 'insensitive' as const } },
+        ]}
+      } else if (subParts.length === 2) {
+        // Região + Concelho/Freguesia
+        return { OR: [
+          { AND: [{ locationRegiao: { equals: subParts[0], mode: 'insensitive' as const } }, { locationConcelho: { equals: subParts[1], mode: 'insensitive' as const } }] },
+          { AND: [{ locationConcelho: { equals: subParts[0], mode: 'insensitive' as const } }, { locationFreguesia: { equals: subParts[1], mode: 'insensitive' as const } }] },
+          { locationFreguesia: { equals: subParts[1], mode: 'insensitive' as const } },
+        ]}
+      } else {
+        return { locationText: { contains: loc, mode: 'insensitive' as const } }
+      }
     })
     if (locationConditions.length === 1) {
-      where.locationText = locationConditions[0].locationText
+      Object.assign(where, locationConditions[0])
     } else if (locationConditions.length > 1) {
       where.OR = locationConditions
     }
