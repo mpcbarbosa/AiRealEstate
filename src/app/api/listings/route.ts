@@ -39,13 +39,14 @@ export async function GET(req: NextRequest) {
   if (propertyType) where.propertyType = propertyType
   if (typology) where.typology = typology
   if (location) {
-    // Suportar múltiplas localizações separadas por vírgula (ex: "Lisboa,Porto")
-    // e labels com " › " (ex: "Lisboa › Misericórdia") — usar cada parte como OR
+    // Múltiplas localizações separadas por vírgula → OR entre localizações
+    // Dentro de cada localização "Lisboa › Misericórdia" → AND (tem de conter a parte mais específica)
     const locationParts = location.split(',').map((l: string) => l.trim()).filter(Boolean)
-    const locationConditions = locationParts.flatMap((loc: string) => {
-      // Partir "Lisboa › Misericórdia" em ["Lisboa", "Misericórdia"]
+    const locationConditions = locationParts.map((loc: string) => {
+      // Usar apenas a parte mais específica (última após ›)
       const subParts = loc.split('›').map((p: string) => p.trim()).filter(Boolean)
-      return subParts.map((part: string) => ({ locationText: { contains: part, mode: 'insensitive' as const } }))
+      const mostSpecific = subParts[subParts.length - 1] // ex: "Misericórdia"
+      return { locationText: { contains: mostSpecific, mode: 'insensitive' as const } }
     })
     if (locationConditions.length === 1) {
       where.locationText = locationConditions[0].locationText
