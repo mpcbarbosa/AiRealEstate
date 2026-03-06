@@ -38,7 +38,21 @@ export async function GET(req: NextRequest) {
   if (businessType) where.businessType = businessType
   if (propertyType) where.propertyType = propertyType
   if (typology) where.typology = typology
-  if (location) where.locationText = { contains: location, mode: 'insensitive' }
+  if (location) {
+    // Suportar múltiplas localizações separadas por vírgula (ex: "Lisboa,Porto")
+    // e labels com " › " (ex: "Lisboa › Misericórdia") — usar cada parte como OR
+    const locationParts = location.split(',').map((l: string) => l.trim()).filter(Boolean)
+    const locationConditions = locationParts.flatMap((loc: string) => {
+      // Partir "Lisboa › Misericórdia" em ["Lisboa", "Misericórdia"]
+      const subParts = loc.split('›').map((p: string) => p.trim()).filter(Boolean)
+      return subParts.map((part: string) => ({ locationText: { contains: part, mode: 'insensitive' as const } }))
+    })
+    if (locationConditions.length === 1) {
+      where.locationText = locationConditions[0].locationText
+    } else if (locationConditions.length > 1) {
+      where.OR = locationConditions
+    }
+  }
   if (priceMin || priceMax) {
     where.priceEur = {}
     if (priceMin) where.priceEur.gte = parseFloat(priceMin)
