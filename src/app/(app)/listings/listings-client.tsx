@@ -3,7 +3,7 @@ import LocationFilter, { LocationSelection } from '@/components/ui/location-filt
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { formatPrice, formatArea, PIPELINE_LABELS, PROPERTY_TYPE_LABELS, BUSINESS_TYPE_LABELS } from '@/lib/utils'
-import { MapPin, Home, Filter, LayoutGrid, LayoutList, Map, Star, Phone, RefreshCw } from 'lucide-react'
+import { MapPin, Home, Filter, LayoutGrid, LayoutList, Map, Star, Phone, RefreshCw, ExternalLink } from 'lucide-react'
 import Link from 'next/link'
 import dynamic from 'next/dynamic'
 
@@ -34,12 +34,21 @@ function PipelineBadge({ status }: { status?: string }) {
 function ListingCard({ listing, onPipeline }: { listing: any; onPipeline: (id: string, status: string) => void }) {
   const userListing = listing.userListings?.[0]
   const sourceName = listing.sources?.[0]?.sourceName
+  const sourceUrl = listing.sources?.[0]?.sourceUrl
 
   return (
     <div className={`bg-gray-900 border border-gray-800 rounded-xl overflow-hidden hover:border-gray-600 transition-colors group${!listing.active ? " opacity-60" : ""}`}>
       <div className="px-4 pt-3 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          {sourceName && (
+          {sourceName && sourceUrl && (
+            <a href={sourceUrl} target="_blank" rel="noopener noreferrer"
+              onClick={e => e.stopPropagation()}
+              className="flex items-center gap-1 bg-gray-800 hover:bg-blue-600/20 hover:text-blue-400 hover:border-blue-500/40 border border-transparent text-gray-400 text-xs px-2 py-0.5 rounded-md transition-all">
+              <ExternalLink className="w-3 h-3" />
+              {sourceName}
+            </a>
+          )}
+          {sourceName && !sourceUrl && (
             <span className="bg-gray-800 text-gray-400 text-xs px-2 py-0.5 rounded-md">
               {sourceName}
             </span>
