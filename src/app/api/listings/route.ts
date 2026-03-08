@@ -40,26 +40,30 @@ export async function GET(req: NextRequest) {
   if (typology) where.typology = typology
   if (location) {
     // Múltiplas localizações separadas por vírgula → OR entre localizações
+    // Usar APENAS campos normalizados — sem fallback para locationText (impreciso)
     const locationParts = location.split(',').map((l: string) => l.trim()).filter(Boolean)
     const locationConditions = locationParts.map((loc: string) => {
-      // "Lisboa › Misericórdia" → regiao=Lisboa, freguesia=Misericórdia
       const subParts = loc.split('›').map((p: string) => p.trim()).filter(Boolean)
       if (subParts.length === 1) {
-        // Só região — filtrar por locationRegiao OU locationConcelho
+        // Só região/concelho — OR entre locationRegiao e locationConcelho
         return { OR: [
           { locationRegiao: { equals: subParts[0], mode: 'insensitive' as const } },
           { locationConcelho: { equals: subParts[0], mode: 'insensitive' as const } },
-          { locationText: { contains: subParts[0], mode: 'insensitive' as const } },
         ]}
       } else if (subParts.length === 2) {
-        // Região + Concelho/Freguesia
-        return { OR: [
-          { AND: [{ locationRegiao: { equals: subParts[0], mode: 'insensitive' as const } }, { locationConcelho: { equals: subParts[1], mode: 'insensitive' as const } }] },
-          { AND: [{ locationConcelho: { equals: subParts[0], mode: 'insensitive' as const } }, { locationFreguesia: { equals: subParts[1], mode: 'insensitive' as const } }] },
-          { locationFreguesia: { equals: subParts[1], mode: 'insensitive' as const } },
+        // "Porto › Cedofeita" — AND: regiao=Porto E (concelho=Cedofeita OU freguesia=Cedofeita)
+        return { AND: [
+          { OR: [
+            { locationRegiao: { equals: subParts[0], mode: 'insensitive' as const } },
+            { locationConcelho: { equals: subParts[0], mode: 'insensitive' as const } },
+          ]},
+          { OR: [
+            { locationConcelho: { equals: subParts[1], mode: 'insensitive' as const } },
+            { locationFreguesia: { equals: subParts[1], mode: 'insensitive' as const } },
+          ]},
         ]}
       } else {
-        return { locationText: { contains: loc, mode: 'insensitive' as const } }
+        return { locationFreguesia: { equals: subParts[subParts.length - 1], mode: 'insensitive' as const } }
       }
     })
     if (locationConditions.length === 1) {
