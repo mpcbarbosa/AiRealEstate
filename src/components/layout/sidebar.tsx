@@ -6,7 +6,7 @@ import { cn } from '@/lib/utils'
 import { LayoutDashboard, Home, Star, Phone, PhoneCall, XCircle, CheckCircle2, Bell, Settings, BarChart3 } from 'lucide-react'
 
 const pipelineItems = [
-  { label: 'Todos', href: '/listings', icon: Home, status: '' },
+  { label: 'Todos', href: '/search', icon: Home, status: '' },
   { label: 'Favoritos', href: '/listings?status=FAVORITE', icon: Star, status: 'FAVORITE' },
   { label: 'A contactar', href: '/listings?status=TO_CONTACT', icon: Phone, status: 'TO_CONTACT' },
   { label: 'Contactado', href: '/listings?status=CONTACTED', icon: PhoneCall, status: 'CONTACTED' },
