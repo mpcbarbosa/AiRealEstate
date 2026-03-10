@@ -10,6 +10,16 @@ const BUSINESS_OPTIONS = [
   { value: 'rent', label: 'Arrendar' },
 ]
 
+const PROPERTY_TYPE_OPTIONS = [
+  { value: 'apartment', label: 'Apartamento' },
+  { value: 'house', label: 'Moradia' },
+  { value: 'commercial', label: 'Comercial' },
+  { value: 'land', label: 'Terreno' },
+  { value: 'warehouse', label: 'Armazém' },
+  { value: 'building', label: 'Edifício' },
+  { value: 'other', label: 'Outro' },
+]
+
 const TYPOLOGY_OPTIONS = ['T0', 'T1', 'T2', 'T3', 'T4', 'T5+']
 
 const BUDGET_OPTIONS = [
@@ -31,6 +41,7 @@ export default function SearchPage() {
   const [concelho, setConcelho] = useState('')
   const [businessType, setBusinessType] = useState('')
   const [typologies, setTypologies] = useState<string[]>([])
+  const [propertyType, setPropertyType] = useState('')
   const [priceMax, setPriceMax] = useState('')
 
   const concelhos = regiao ? getConcelhosByRegiao(regiao) : []
@@ -46,6 +57,7 @@ export default function SearchPage() {
     const locationLabel = concelho ? `${regiao} › ${concelho}` : regiao
     params.set('location', locationLabel)
     if (businessType) params.set('businessType', businessType)
+    if (propertyType) params.set('propertyType', propertyType)
     if (typologies.length === 1) params.set('typology', typologies[0])
     if (priceMax) params.set('priceMax', priceMax)
     router.push(`/listings?${params.toString()}`)
@@ -107,6 +119,26 @@ export default function SearchPage() {
           </div>
         </div>
 
+        {/* Tipo de imóvel */}
+        <div>
+          <label className="block text-sm font-medium text-gray-300 mb-2">Tipo de imóvel</label>
+          <div className="flex gap-2 flex-wrap">
+            {PROPERTY_TYPE_OPTIONS.map(opt => (
+              <button
+                key={opt.value}
+                onClick={() => setPropertyType(prev => prev === opt.value ? '' : opt.value)}
+                className={`px-3 py-2 rounded-xl text-sm font-medium transition ${
+                  propertyType === opt.value
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-gray-800 text-gray-400 hover:bg-gray-700 hover:text-white'
+                }`}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
         {/* Negócio */}
         <div>
           <label className="block text-sm font-medium text-gray-300 mb-2">Negócio</label>
@@ -127,7 +159,8 @@ export default function SearchPage() {
           </div>
         </div>
 
-        {/* Tipologia */}
+        {/* Tipologia — só para apartamento/moradia */}
+        {(!propertyType || propertyType === 'apartment' || propertyType === 'house') && (
         <div>
           <label className="block text-sm font-medium text-gray-300 mb-2">Tipologia</label>
           <div className="flex gap-2 flex-wrap">
@@ -146,6 +179,7 @@ export default function SearchPage() {
             ))}
           </div>
         </div>
+        )}
 
         {/* Orçamento */}
         <div>
