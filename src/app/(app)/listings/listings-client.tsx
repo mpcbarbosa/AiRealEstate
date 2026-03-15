@@ -40,18 +40,17 @@ function ListingCard({ listing, onPipeline }: { listing: any; onPipeline: (id: s
     <div className={`bg-gray-900 border border-gray-800 rounded-xl overflow-hidden hover:border-gray-600 transition-colors group${!listing.active ? " opacity-60" : ""}`}>
       <div className="px-4 pt-3 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          {sourceName && sourceUrl && (
-            <a href={sourceUrl} target="_blank" rel="noopener noreferrer"
-              onClick={e => e.stopPropagation()}
-              className="flex items-center gap-1 bg-gray-800 hover:bg-blue-600/20 hover:text-blue-400 hover:border-blue-500/40 border border-transparent text-gray-400 text-xs px-2 py-0.5 rounded-md transition-all">
-              <ExternalLink className="w-3 h-3" />
-              {sourceName}
-            </a>
-          )}
-          {sourceName && !sourceUrl && (
-            <span className="bg-gray-800 text-gray-400 text-xs px-2 py-0.5 rounded-md">
-              {sourceName}
-            </span>
+          {sourceName && (
+            sourceUrl ? (
+              <a href={sourceUrl} target="_blank" rel="noopener noreferrer"
+                onClick={e => e.stopPropagation()}
+                className="flex items-center gap-1 bg-gray-800 hover:bg-blue-600/20 hover:text-blue-400 hover:border-blue-500/40 border border-transparent text-gray-400 text-xs px-2 py-0.5 rounded-md transition-all">
+                <ExternalLink className="w-3 h-3" />
+                {sourceName}
+              </a>
+            ) : (
+              <span className="bg-gray-800 text-gray-400 text-xs px-2 py-0.5 rounded-md">{sourceName}</span>
+            )
           )}
           {!listing.active && (
             <span className="bg-red-900/80 text-red-200 text-xs px-2 py-0.5 rounded-md font-medium">
@@ -72,12 +71,16 @@ function ListingCard({ listing, onPipeline }: { listing: any; onPipeline: (id: s
           <PipelineBadge status={userListing?.status} />
         </div>
 
-        {listing.locationText && (
-          <p className="text-xs text-gray-500 flex items-center gap-1 mb-3">
-            <MapPin className="w-3 h-3 shrink-0" />
-            <span className="truncate">{listing.locationText}</span>
-          </p>
-        )}
+        {(() => {
+          const loc = listing.locationText ||
+            [listing.locationFreguesia, listing.locationConcelho, listing.locationRegiao].filter(Boolean).join(', ')
+          return loc ? (
+            <p className="text-xs text-gray-500 flex items-center gap-1 mb-3">
+              <MapPin className="w-3 h-3 shrink-0" />
+              <span className="truncate">{loc}</span>
+            </p>
+          ) : <div className="mb-3" />
+        })()}
 
         <div className="flex items-center justify-between mb-1">
           <span className="text-blue-400 font-bold text-sm">{formatPrice(listing.priceEur)}</span>
