@@ -33,8 +33,14 @@ function PipelineBadge({ status }: { status?: string }) {
 
 function ListingCard({ listing, onPipeline }: { listing: any; onPipeline: (id: string, status: string) => void }) {
   const userListing = listing.userListings?.[0]
-  const sourceName = listing.sources?.[0]?.sourceName
   const sourceUrl = listing.sources?.[0]?.sourceUrl
+  const sourceName = listing.sources?.[0]?.sourceName || (() => {
+    if (!sourceUrl) return null
+    try {
+      const host = new URL(sourceUrl).hostname.replace('www.', '')
+      return host.split('.')[0] // "imovirtual", "supercasa", "remax", etc.
+    } catch { return null }
+  })()
 
   return (
     <div className={`bg-gray-900 border border-gray-800 rounded-xl overflow-hidden hover:border-gray-600 transition-colors group${!listing.active ? " opacity-60" : ""}`}>
