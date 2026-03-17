@@ -315,8 +315,11 @@ export default function ListingDetailClient() {
             <div className="space-y-2">
               {listing.sources?.map((s: any) => (
                 <div key={s.id} className="flex items-center justify-between bg-gray-800/60 rounded-xl px-4 py-3">
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-3 flex-wrap">
                     <span className="text-sm font-medium text-white">{s.sourceName || 'Desconhecido'}</span>
+                    {s.sourceReference && (
+                      <span className="text-xs bg-gray-700 text-gray-300 px-2 py-0.5 rounded font-mono">{s.sourceReference}</span>
+                    )}
                     {s.sourceFamily && <span className="text-xs text-gray-500">({s.sourceFamily})</span>}
                     {s.publishedAt && (
                       <span className="text-xs text-gray-500">· publicado {new Date(s.publishedAt).toLocaleDateString('pt-PT')}</span>

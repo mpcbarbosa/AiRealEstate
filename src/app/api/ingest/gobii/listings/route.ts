@@ -31,6 +31,8 @@ const IngestItemSchema = z.object({
   sourceUrl: z.string().url('sourceUrl deve ser uma URL válida'),
   listingStatus: z.enum(['active', 'sold', 'removed', 'expired']).optional(),
   sourceExternalId: z.string().nullable().optional(),
+  sourceReference: z.string().nullable().optional(),
+  sourceReference: z.string().nullable().optional(), // ref. do anúncio no portal (ex: KWPT-026342)
   title: z.string().nullable().optional(),
   description: z.string().nullable().optional(),
   businessType: z.string().nullable().optional(),
@@ -277,6 +279,7 @@ async function processItem(item: z.infer<typeof IngestItemSchema>, ingestRunId: 
         sourceName: item.sourceName,
         sourceUrl: item.sourceUrl,
         sourceExternalId: item.sourceExternalId,
+        sourceReference: item.sourceReference || null,
         contacts: (item.contacts as any) || null,
         images: [],
         rawPayload: (item.raw as any) || null,

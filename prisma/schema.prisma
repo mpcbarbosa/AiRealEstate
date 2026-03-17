@@ -100,6 +100,7 @@ model ListingSource {
   sourceName       String?
   sourceUrl        String        @unique
   sourceExternalId String?
+  sourceReference  String?           // ref. do anúncio no portal (ex: KWPT-026342, IMV-123)
   contacts         Json?
   images           String[]
   rawPayload       Json?
