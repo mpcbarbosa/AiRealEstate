@@ -143,7 +143,20 @@ export default function ListingsClient() {
       propertyType: sp.get('propertyType') || '',
       typology: sp.get('typology') || '',
       location: sp.get('location') || '',
-      locations: [] as LocationSelection[],
+      locations: (() => {
+        const loc = sp.get('location') || ''
+        if (!loc) return [] as LocationSelection[]
+        return loc.split(',').map(part => {
+          const trimmed = part.trim()
+          const subParts = trimmed.split('›').map(p => p.trim())
+          return {
+            regiao: subParts[0] || undefined,
+            concelho: subParts[1] || undefined,
+            freguesia: subParts[2] || undefined,
+            label: trimmed,
+          } as LocationSelection
+        })
+      })(),
       priceMin: sp.get('priceMin') || '',
       priceMax: sp.get('priceMax') || '',
       areaMin: sp.get('areaMin') || '',
@@ -207,9 +220,11 @@ export default function ListingsClient() {
     setFilters(f => ({ ...f, [key]: value, page: 1 }))
   }
 
-  const activeFiltersCount = Object.entries(filters).filter(([k, v]) =>
-    v && k !== 'orderBy' && k !== 'page' && k !== 'status'
-  ).length
+  const activeFiltersCount = Object.entries(filters).filter(([k, v]) => {
+    if (k === 'orderBy' || k === 'page' || k === 'status' || k === 'market') return false
+    if (k === 'locations') return (v as any[]).length > 0
+    return !!v
+  }).length
 
   const statusLabel = filters.status ? PIPELINE_LABELS[filters.status] : null
 
