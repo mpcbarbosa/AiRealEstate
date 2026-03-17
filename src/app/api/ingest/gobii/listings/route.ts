@@ -133,6 +133,15 @@ async function processItem(item: z.infer<typeof IngestItemSchema>, ingestRunId: 
   const propertyType = normalizePropertyType(item.propertyType)
   const dedupeHash = generateDedupeHash(item)
 
+  // ── Validação de qualidade mínima ────────────────────────────────────────
+  const qualityErrors: string[] = []
+  if (!item.priceEur) qualityErrors.push('priceEur em falta')
+  if (!item.locationRegiao && !item.locationConcelho && !item.locationText) qualityErrors.push('localização em falta')
+  if (!item.propertyType) qualityErrors.push('propertyType em falta')
+  if (qualityErrors.length > 0) {
+    throw new Error(`Qualidade insuficiente: ${qualityErrors.join(', ')}`)
+  }
+
   // ── Atualizar fonte existente (UPDATED) ──────────────────────────────────
   // Se o Gobii reportar que o anúncio saiu do mercado, marcar e sair
   if (item.listingStatus && item.listingStatus !== 'active') {
