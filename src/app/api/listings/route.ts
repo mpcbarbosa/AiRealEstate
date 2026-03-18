@@ -82,6 +82,26 @@ export async function GET(req: NextRequest) {
     if (areaMin) where.areaM2.gte = parseFloat(areaMin)
     if (areaMax) where.areaM2.lte = parseFloat(areaMax)
   }
+
+  // Filtros estruturados: andar, WCs, elevador
+  const floorMin = searchParams.get('floorMin')
+  const floorMax = searchParams.get('floorMax')
+  const bathroomsMin = searchParams.get('bathroomsMin')
+  const hasElevator = searchParams.get('hasElevator')
+
+  if (floorMin || floorMax) {
+    where.floor = {}
+    if (floorMin) where.floor.gte = parseInt(floorMin)
+    if (floorMax) where.floor.lte = parseInt(floorMax)
+  }
+  if (bathroomsMin) {
+    where.bathrooms = { gte: parseInt(bathroomsMin) }
+  }
+  if (hasElevator === 'true') {
+    where.hasElevator = true
+  } else if (hasElevator === 'false') {
+    where.hasElevator = false
+  }
   if (keywords) {
     where.OR = [
       { title: { contains: keywords, mode: 'insensitive' } },

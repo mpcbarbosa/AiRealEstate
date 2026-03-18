@@ -95,6 +95,27 @@ function ListingCard({ listing, onPipeline }: { listing: any; onPipeline: (id: s
             {listing.areaM2 && <span>{formatArea(listing.areaM2)}</span>}
           </div>
         </div>
+
+        {/* Badges: andar, WCs, elevador */}
+        {(listing.floor != null || listing.bathrooms != null || listing.hasElevator != null) && (
+          <div className="flex flex-wrap gap-1.5 mb-2">
+            {listing.floor != null && (
+              <span className="text-xs bg-gray-800 text-gray-400 px-1.5 py-0.5 rounded">
+                {listing.floor === 0 ? 'R/C' : `${listing.floor}º andar`}
+              </span>
+            )}
+            {listing.bathrooms != null && (
+              <span className="text-xs bg-gray-800 text-gray-400 px-1.5 py-0.5 rounded">
+                {listing.bathrooms} WC{listing.bathrooms !== 1 ? 's' : ''}
+              </span>
+            )}
+            {listing.hasElevator != null && (
+              <span className={`text-xs px-1.5 py-0.5 rounded ${listing.hasElevator ? 'bg-green-500/10 text-green-400' : 'bg-red-500/10 text-red-400'}`}>
+                {listing.hasElevator ? '🛗 Elevador' : '🚫 S/ elevador'}
+              </span>
+            )}
+          </div>
+        )}
         {listing.sources?.[0]?.publishedAt && (() => {
           const days = Math.floor((Date.now() - new Date(listing.sources[0].publishedAt).getTime()) / (1000 * 60 * 60 * 24))
           return <p className="text-xs text-gray-500 mb-2">{days === 0 ? 'Publicado hoje' : days === 1 ? '1 dia no mercado' : `${days} dias no mercado`}</p>
@@ -161,6 +182,10 @@ export default function ListingsClient() {
       priceMax: sp.get('priceMax') || '',
       areaMin: sp.get('areaMin') || '',
       areaMax: sp.get('areaMax') || '',
+      floorMin: sp.get('floorMin') || '',
+      floorMax: sp.get('floorMax') || '',
+      bathroomsMin: sp.get('bathroomsMin') || '',
+      hasElevator: sp.get('hasElevator') || '',
       keywords: sp.get('keywords') || '',
       status: sp.get('status') || '',
       market: sp.get('market') || 'active',
@@ -332,6 +357,37 @@ export default function ListingsClient() {
                 className="w-full bg-gray-800 border border-gray-700 rounded-lg px-2 py-1.5 text-sm text-white placeholder-gray-600" />
             </div>
             <div>
+              <label className="block text-xs text-gray-400 mb-1">Andar mín.</label>
+              <input type="number" value={(filters as any).floorMin || ''} onChange={e => updateFilter('floorMin', e.target.value)}
+                placeholder="0"
+                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-2 py-1.5 text-sm text-white placeholder-gray-600" />
+            </div>
+            <div>
+              <label className="block text-xs text-gray-400 mb-1">Andar máx.</label>
+              <input type="number" value={(filters as any).floorMax || ''} onChange={e => updateFilter('floorMax', e.target.value)}
+                placeholder="—"
+                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-2 py-1.5 text-sm text-white placeholder-gray-600" />
+            </div>
+            <div>
+              <label className="block text-xs text-gray-400 mb-1">WCs mín.</label>
+              <select value={(filters as any).bathroomsMin || ''} onChange={e => updateFilter('bathroomsMin', e.target.value)}
+                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-2 py-1.5 text-sm text-white">
+                <option value="">Qualquer</option>
+                <option value="1">1+</option>
+                <option value="2">2+</option>
+                <option value="3">3+</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs text-gray-400 mb-1">Elevador</label>
+              <select value={(filters as any).hasElevator || ''} onChange={e => updateFilter('hasElevator', e.target.value)}
+                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-2 py-1.5 text-sm text-white">
+                <option value="">Indiferente</option>
+                <option value="true">Com elevador</option>
+                <option value="false">Sem elevador</option>
+              </select>
+            </div>
+            <div>
               <label className="block text-xs text-gray-400 mb-1">Mercado</label>
               <select value={(filters as any).market || 'active'} onChange={e => updateFilter('market', e.target.value)}
                 className="w-full bg-gray-800 border border-gray-700 rounded-lg px-2 py-1.5 text-sm text-white">
@@ -355,7 +411,7 @@ export default function ListingsClient() {
             <input value={filters.keywords} onChange={e => updateFilter('keywords', e.target.value)}
               placeholder="Palavras-chave (ex: piscina, garagem…)"
               className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-3 py-1.5 text-sm text-white placeholder-gray-600" />
-            <button onClick={() => setFilters(f => ({ ...f, businessType: '', propertyType: '', typology: '', location: '', locations: [], priceMin: '', priceMax: '', areaMin: '', areaMax: '', keywords: '', orderBy: 'newest', page: 1 }))}
+            <button onClick={() => setFilters(f => ({ ...f, businessType: '', propertyType: '', typology: '', location: '', locations: [], priceMin: '', priceMax: '', areaMin: '', areaMax: '', floorMin: '', floorMax: '', bathroomsMin: '', hasElevator: '', keywords: '', orderBy: 'newest', page: 1 }))}
               className="text-sm text-gray-400 hover:text-white transition whitespace-nowrap">
               Limpar filtros
             </button>

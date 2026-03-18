@@ -58,6 +58,9 @@ model ListingMaster {
   locationFreguesia String?         // ex: "Misericórdia"
   lat             Float?
   lng             Float?
+  floor           Int?              // andar do imóvel (0 = r/c)
+  bathrooms       Int?              // número de casas de banho
+  hasElevator     Boolean?          // tem elevador?
   features        Json?
   active          Boolean        @default(true)
   offMarketAt     DateTime?

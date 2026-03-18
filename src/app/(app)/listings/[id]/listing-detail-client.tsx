@@ -282,6 +282,21 @@ export default function ListingDetailClient() {
           <div className="flex flex-wrap gap-2">
             {listing.typology && <span className="bg-gray-800 text-white text-sm font-medium px-3 py-1.5 rounded-lg">{listing.typology}</span>}
             {listing.areaM2 && <span className="bg-gray-800 text-white text-sm font-medium px-3 py-1.5 rounded-lg">{formatArea(listing.areaM2)}</span>}
+            {listing.floor != null && (
+              <span className="bg-gray-800 text-white text-sm font-medium px-3 py-1.5 rounded-lg">
+                {listing.floor === 0 ? 'R/C' : `${listing.floor}º andar`}
+              </span>
+            )}
+            {listing.bathrooms != null && (
+              <span className="bg-gray-800 text-white text-sm font-medium px-3 py-1.5 rounded-lg">
+                {listing.bathrooms} WC{listing.bathrooms !== 1 ? 's' : ''}
+              </span>
+            )}
+            {listing.hasElevator != null && (
+              <span className={`text-sm font-medium px-3 py-1.5 rounded-lg ${listing.hasElevator ? 'bg-green-500/15 text-green-400' : 'bg-red-500/15 text-red-400'}`}>
+                {listing.hasElevator ? '🛗 Com elevador' : '🚫 Sem elevador'}
+              </span>
+            )}
             {listing.propertyType && <span className="bg-gray-800 text-gray-300 text-sm px-3 py-1.5 rounded-lg">{PROPERTY_TYPE_LABELS[listing.propertyType]}</span>}
             {listing.businessType && <span className="bg-gray-800 text-gray-300 text-sm px-3 py-1.5 rounded-lg">{BUSINESS_TYPE_LABELS[listing.businessType]}</span>}
             {!listing.active && (
