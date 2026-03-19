@@ -102,6 +102,10 @@ export async function GET(req: NextRequest) {
   } else if (hasElevator === 'false') {
     where.hasElevator = false
   }
+  const parkingMin = searchParams.get('parkingMin')
+  if (parkingMin) {
+    where.parkingSpaces = { gte: parseInt(parkingMin) }
+  }
   if (keywords) {
     where.OR = [
       { title: { contains: keywords, mode: 'insensitive' } },

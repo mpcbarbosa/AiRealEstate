@@ -97,7 +97,7 @@ function ListingCard({ listing, onPipeline }: { listing: any; onPipeline: (id: s
         </div>
 
         {/* Badges: andar, WCs, elevador */}
-        {(listing.floor != null || listing.bathrooms != null || listing.hasElevator != null) && (
+        {(listing.floor != null || listing.bathrooms != null || listing.hasElevator != null || listing.parkingSpaces != null) && (
           <div className="flex flex-wrap gap-1.5 mb-2">
             {listing.floor != null && (
               <span className="text-xs bg-gray-800 text-gray-400 px-1.5 py-0.5 rounded">
@@ -112,6 +112,16 @@ function ListingCard({ listing, onPipeline }: { listing: any; onPipeline: (id: s
             {listing.hasElevator != null && (
               <span className={`text-xs px-1.5 py-0.5 rounded ${listing.hasElevator ? 'bg-green-500/10 text-green-400' : 'bg-red-500/10 text-red-400'}`}>
                 {listing.hasElevator ? '🛗 Elevador' : '🚫 S/ elevador'}
+              </span>
+            )}
+            {listing.parkingSpaces != null && listing.parkingSpaces > 0 && (
+              <span className="text-xs bg-gray-800 text-gray-400 px-1.5 py-0.5 rounded">
+                🅿️ {listing.parkingSpaces} {listing.parkingSpaces === 1 ? 'lugar' : 'lugares'}
+              </span>
+            )}
+            {listing.parkingSpaces === 0 && (
+              <span className="text-xs bg-red-500/10 text-red-400 px-1.5 py-0.5 rounded">
+                🅿️ S/ garagem
               </span>
             )}
           </div>
@@ -186,6 +196,7 @@ export default function ListingsClient() {
       floorMax: sp.get('floorMax') || '',
       bathroomsMin: sp.get('bathroomsMin') || '',
       hasElevator: sp.get('hasElevator') || '',
+      parkingMin: sp.get('parkingMin') || '',
       keywords: sp.get('keywords') || '',
       status: sp.get('status') || '',
       market: sp.get('market') || 'active',
@@ -388,6 +399,16 @@ export default function ListingsClient() {
               </select>
             </div>
             <div>
+              <label className="block text-xs text-gray-400 mb-1">Estacionamento</label>
+              <select value={(filters as any).parkingMin || ''} onChange={e => updateFilter('parkingMin', e.target.value)}
+                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-2 py-1.5 text-sm text-white">
+                <option value="">Indiferente</option>
+                <option value="1">1+ lugar</option>
+                <option value="2">2+ lugares</option>
+                <option value="3">3+ lugares</option>
+              </select>
+            </div>
+            <div>
               <label className="block text-xs text-gray-400 mb-1">Mercado</label>
               <select value={(filters as any).market || 'active'} onChange={e => updateFilter('market', e.target.value)}
                 className="w-full bg-gray-800 border border-gray-700 rounded-lg px-2 py-1.5 text-sm text-white">
@@ -411,7 +432,7 @@ export default function ListingsClient() {
             <input value={filters.keywords} onChange={e => updateFilter('keywords', e.target.value)}
               placeholder="Palavras-chave (ex: piscina, garagem…)"
               className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-3 py-1.5 text-sm text-white placeholder-gray-600" />
-            <button onClick={() => setFilters(f => ({ ...f, businessType: '', propertyType: '', typology: '', location: '', locations: [], priceMin: '', priceMax: '', areaMin: '', areaMax: '', floorMin: '', floorMax: '', bathroomsMin: '', hasElevator: '', keywords: '', orderBy: 'newest', page: 1 }))}
+            <button onClick={() => setFilters(f => ({ ...f, businessType: '', propertyType: '', typology: '', location: '', locations: [], priceMin: '', priceMax: '', areaMin: '', areaMax: '', floorMin: '', floorMax: '', bathroomsMin: '', hasElevator: '', parkingMin: '', keywords: '', orderBy: 'newest', page: 1 }))}
               className="text-sm text-gray-400 hover:text-white transition whitespace-nowrap">
               Limpar filtros
             </button>

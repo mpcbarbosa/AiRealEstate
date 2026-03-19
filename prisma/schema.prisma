@@ -61,6 +61,7 @@ model ListingMaster {
   floor           Int?              // andar do imóvel (0 = r/c)
   bathrooms       Int?              // número de casas de banho
   hasElevator     Boolean?          // tem elevador?
+  parkingSpaces   Int?              // nº de lugares de estacionamento (0 = sem garagem)
   features        Json?
   active          Boolean        @default(true)
   offMarketAt     DateTime?
