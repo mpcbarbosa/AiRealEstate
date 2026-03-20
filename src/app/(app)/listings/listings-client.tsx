@@ -209,7 +209,7 @@ export default function ListingsClient() {
   const fetchListings = useCallback(async () => {
     setLoading(true)
     const params = new URLSearchParams()
-    Object.entries(filters).forEach(([k, v]) => { if (v) params.set(k, String(v)) })
+    Object.entries(filters).forEach(([k, v]) => { if (v && k !== 'locations') params.set(k, String(v)) })
     const res = await fetch(`/api/listings?${params}`)
     if (res.ok) {
       const data = await res.json()
@@ -222,7 +222,7 @@ export default function ListingsClient() {
   // Fetch all listings with coords for map view (sem paginação)
   const fetchAllGeo = useCallback(async () => {
     const params = new URLSearchParams()
-    Object.entries(filters).forEach(([k, v]) => { if (v && k !== 'page') params.set(k, String(v)) })
+    Object.entries(filters).forEach(([k, v]) => { if (v && k !== 'page' && k !== 'locations') params.set(k, String(v)) })
     params.set('limit', '500')
     params.set('page', '1')
     const res = await fetch(`/api/listings?${params}`)
@@ -311,98 +311,127 @@ export default function ListingsClient() {
       </div>
 
       {showFilters && (
-        <div className="bg-gray-900 border border-gray-800 rounded-xl p-4 mb-6">
+        <div className="bg-gray-900 border border-gray-800 rounded-xl p-4 mb-6 space-y-4">
+
+          {/* Localização e tipo — sempre visível */}
+          <div>
+            <p className="text-xs text-gray-500 uppercase tracking-wider font-medium mb-2">Localização</p>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <div className="col-span-2">
+                <label className="block text-xs text-gray-400 mb-1">Localização</label>
+                <LocationFilter
+                  value={filters.locations}
+                  onChange={locs => setFilters(f => ({ ...f, locations: locs, location: locs.map(l => l.label).join(',') }))}
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-gray-400 mb-1">Negócio</label>
+                <select value={filters.businessType} onChange={e => updateFilter('businessType', e.target.value)}
+                  className="w-full bg-gray-800 border border-gray-700 rounded-lg px-2 py-1.5 text-sm text-white">
+                  <option value="">Todos</option>
+                  {BUSINESS_TYPES.map(t => <option key={t} value={t}>{BUSINESS_TYPE_LABELS[t]}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs text-gray-400 mb-1">Tipo</label>
+                <select value={filters.propertyType} onChange={e => updateFilter('propertyType', e.target.value)}
+                  className="w-full bg-gray-800 border border-gray-700 rounded-lg px-2 py-1.5 text-sm text-white">
+                  <option value="">Todos</option>
+                  {PROPERTY_TYPES.map(t => <option key={t} value={t}>{PROPERTY_TYPE_LABELS[t]}</option>)}
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div className="border-t border-gray-800" />
+
+          {/* Preço e área */}
+          <div>
+            <p className="text-xs text-gray-500 uppercase tracking-wider font-medium mb-2">Preço e área</p>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <div>
+                <label className="block text-xs text-gray-400 mb-1">Preço mín. (€)</label>
+                <input type="number" value={filters.priceMin} onChange={e => updateFilter('priceMin', e.target.value)}
+                  placeholder="0"
+                  className="w-full bg-gray-800 border border-gray-700 rounded-lg px-2 py-1.5 text-sm text-white placeholder-gray-600" />
+              </div>
+              <div>
+                <label className="block text-xs text-gray-400 mb-1">Preço máx. (€)</label>
+                <input type="number" value={filters.priceMax} onChange={e => updateFilter('priceMax', e.target.value)}
+                  placeholder="Sem limite"
+                  className="w-full bg-gray-800 border border-gray-700 rounded-lg px-2 py-1.5 text-sm text-white placeholder-gray-600" />
+              </div>
+              <div>
+                <label className="block text-xs text-gray-400 mb-1">Área mín. (m²)</label>
+                <input type="number" value={filters.areaMin} onChange={e => updateFilter('areaMin', e.target.value)}
+                  placeholder="0"
+                  className="w-full bg-gray-800 border border-gray-700 rounded-lg px-2 py-1.5 text-sm text-white placeholder-gray-600" />
+              </div>
+              <div>
+                <label className="block text-xs text-gray-400 mb-1">Tipologia</label>
+                <select value={filters.typology} onChange={e => updateFilter('typology', e.target.value)}
+                  className="w-full bg-gray-800 border border-gray-700 rounded-lg px-2 py-1.5 text-sm text-white">
+                  <option value="">Todas</option>
+                  {TYPOLOGIES.map(t => <option key={t} value={t}>{t}</option>)}
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div className="border-t border-gray-800" />
+
+          {/* Características do imóvel */}
+          <div>
+            <p className="text-xs text-gray-500 uppercase tracking-wider font-medium mb-2">Características</p>
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+              <div>
+                <label className="block text-xs text-gray-400 mb-1">Andar mín.</label>
+                <input type="number" value={(filters as any).floorMin || ''} onChange={e => updateFilter('floorMin', e.target.value)}
+                  placeholder="0"
+                  className="w-full bg-gray-800 border border-gray-700 rounded-lg px-2 py-1.5 text-sm text-white placeholder-gray-600" />
+              </div>
+              <div>
+                <label className="block text-xs text-gray-400 mb-1">Andar máx.</label>
+                <input type="number" value={(filters as any).floorMax || ''} onChange={e => updateFilter('floorMax', e.target.value)}
+                  placeholder="—"
+                  className="w-full bg-gray-800 border border-gray-700 rounded-lg px-2 py-1.5 text-sm text-white placeholder-gray-600" />
+              </div>
+              <div>
+                <label className="block text-xs text-gray-400 mb-1">WCs mín.</label>
+                <select value={(filters as any).bathroomsMin || ''} onChange={e => updateFilter('bathroomsMin', e.target.value)}
+                  className="w-full bg-gray-800 border border-gray-700 rounded-lg px-2 py-1.5 text-sm text-white">
+                  <option value="">Qualquer</option>
+                  <option value="1">1+</option>
+                  <option value="2">2+</option>
+                  <option value="3">3+</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs text-gray-400 mb-1">Elevador</label>
+                <select value={(filters as any).hasElevator || ''} onChange={e => updateFilter('hasElevator', e.target.value)}
+                  className="w-full bg-gray-800 border border-gray-700 rounded-lg px-2 py-1.5 text-sm text-white">
+                  <option value="">Indiferente</option>
+                  <option value="true">Com elevador</option>
+                  <option value="false">Sem elevador</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs text-gray-400 mb-1">Estacionamento</label>
+                <select value={(filters as any).parkingMin || ''} onChange={e => updateFilter('parkingMin', e.target.value)}
+                  className="w-full bg-gray-800 border border-gray-700 rounded-lg px-2 py-1.5 text-sm text-white">
+                  <option value="">Indiferente</option>
+                  <option value="1">1+ lugar</option>
+                  <option value="2">2+ lugares</option>
+                  <option value="3">3+ lugares</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div className="border-t border-gray-800" />
+
+          {/* Ordenação, mercado e keywords */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            <div>
-              <label className="block text-xs text-gray-400 mb-1">Negócio</label>
-              <select value={filters.businessType} onChange={e => updateFilter('businessType', e.target.value)}
-                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-2 py-1.5 text-sm text-white">
-                <option value="">Todos</option>
-                {BUSINESS_TYPES.map(t => <option key={t} value={t}>{BUSINESS_TYPE_LABELS[t]}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className="block text-xs text-gray-400 mb-1">Tipo</label>
-              <select value={filters.propertyType} onChange={e => updateFilter('propertyType', e.target.value)}
-                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-2 py-1.5 text-sm text-white">
-                <option value="">Todos</option>
-                {PROPERTY_TYPES.map(t => <option key={t} value={t}>{PROPERTY_TYPE_LABELS[t]}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className="block text-xs text-gray-400 mb-1">Tipologia</label>
-              <select value={filters.typology} onChange={e => updateFilter('typology', e.target.value)}
-                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-2 py-1.5 text-sm text-white">
-                <option value="">Todas</option>
-                {TYPOLOGIES.map(t => <option key={t} value={t}>{t}</option>)}
-              </select>
-            </div>
-            <div className="col-span-2">
-              <label className="block text-xs text-gray-400 mb-1">Localização</label>
-              <LocationFilter
-                value={filters.locations}
-                onChange={locs => setFilters(f => ({ ...f, locations: locs, location: locs.map(l => l.label).join(',') }))}
-              />
-            </div>
-            <div>
-              <label className="block text-xs text-gray-400 mb-1">Preço mín. (€)</label>
-              <input type="number" value={filters.priceMin} onChange={e => updateFilter('priceMin', e.target.value)}
-                placeholder="0"
-                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-2 py-1.5 text-sm text-white placeholder-gray-600" />
-            </div>
-            <div>
-              <label className="block text-xs text-gray-400 mb-1">Preço máx. (€)</label>
-              <input type="number" value={filters.priceMax} onChange={e => updateFilter('priceMax', e.target.value)}
-                placeholder="Sem limite"
-                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-2 py-1.5 text-sm text-white placeholder-gray-600" />
-            </div>
-            <div>
-              <label className="block text-xs text-gray-400 mb-1">Área mín. (m²)</label>
-              <input type="number" value={filters.areaMin} onChange={e => updateFilter('areaMin', e.target.value)}
-                placeholder="0"
-                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-2 py-1.5 text-sm text-white placeholder-gray-600" />
-            </div>
-            <div>
-              <label className="block text-xs text-gray-400 mb-1">Andar mín.</label>
-              <input type="number" value={(filters as any).floorMin || ''} onChange={e => updateFilter('floorMin', e.target.value)}
-                placeholder="0"
-                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-2 py-1.5 text-sm text-white placeholder-gray-600" />
-            </div>
-            <div>
-              <label className="block text-xs text-gray-400 mb-1">Andar máx.</label>
-              <input type="number" value={(filters as any).floorMax || ''} onChange={e => updateFilter('floorMax', e.target.value)}
-                placeholder="—"
-                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-2 py-1.5 text-sm text-white placeholder-gray-600" />
-            </div>
-            <div>
-              <label className="block text-xs text-gray-400 mb-1">WCs mín.</label>
-              <select value={(filters as any).bathroomsMin || ''} onChange={e => updateFilter('bathroomsMin', e.target.value)}
-                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-2 py-1.5 text-sm text-white">
-                <option value="">Qualquer</option>
-                <option value="1">1+</option>
-                <option value="2">2+</option>
-                <option value="3">3+</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-xs text-gray-400 mb-1">Elevador</label>
-              <select value={(filters as any).hasElevator || ''} onChange={e => updateFilter('hasElevator', e.target.value)}
-                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-2 py-1.5 text-sm text-white">
-                <option value="">Indiferente</option>
-                <option value="true">Com elevador</option>
-                <option value="false">Sem elevador</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-xs text-gray-400 mb-1">Estacionamento</label>
-              <select value={(filters as any).parkingMin || ''} onChange={e => updateFilter('parkingMin', e.target.value)}
-                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-2 py-1.5 text-sm text-white">
-                <option value="">Indiferente</option>
-                <option value="1">1+ lugar</option>
-                <option value="2">2+ lugares</option>
-                <option value="3">3+ lugares</option>
-              </select>
-            </div>
             <div>
               <label className="block text-xs text-gray-400 mb-1">Mercado</label>
               <select value={(filters as any).market || 'active'} onChange={e => updateFilter('market', e.target.value)}
@@ -422,15 +451,18 @@ export default function ListingsClient() {
                 <option value="areaDesc">Maior área</option>
               </select>
             </div>
-          </div>
-          <div className="mt-3 flex items-center gap-3">
-            <input value={filters.keywords} onChange={e => updateFilter('keywords', e.target.value)}
-              placeholder="Palavras-chave (ex: piscina, garagem…)"
-              className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-3 py-1.5 text-sm text-white placeholder-gray-600" />
-            <button onClick={() => setFilters(f => ({ ...f, businessType: '', propertyType: '', typology: '', location: '', locations: [], priceMin: '', priceMax: '', areaMin: '', areaMax: '', floorMin: '', floorMax: '', bathroomsMin: '', hasElevator: '', parkingMin: '', keywords: '', orderBy: 'newest', page: 1 }))}
-              className="text-sm text-gray-400 hover:text-white transition whitespace-nowrap">
-              Limpar filtros
-            </button>
+            <div className="col-span-2 flex items-end gap-3">
+              <div className="flex-1">
+                <label className="block text-xs text-gray-400 mb-1">Palavras-chave</label>
+                <input value={filters.keywords} onChange={e => updateFilter('keywords', e.target.value)}
+                  placeholder="ex: piscina, varanda, jardim…"
+                  className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-1.5 text-sm text-white placeholder-gray-600" />
+              </div>
+              <button onClick={() => setFilters(f => ({ ...f, businessType: '', propertyType: '', typology: '', location: '', locations: [], priceMin: '', priceMax: '', areaMin: '', areaMax: '', floorMin: '', floorMax: '', bathroomsMin: '', hasElevator: '', parkingMin: '', keywords: '', orderBy: 'newest', page: 1 }))}
+                className="text-sm text-gray-400 hover:text-white transition whitespace-nowrap pb-1">
+                Limpar filtros
+              </button>
+            </div>
           </div>
         </div>
       )}

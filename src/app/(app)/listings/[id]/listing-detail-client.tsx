@@ -6,7 +6,7 @@ import { formatPrice, formatArea, formatDate, displayTitle, PIPELINE_LABELS, PRO
 import {
   MapPin, ExternalLink, Star, Phone, PhoneCall, XCircle, CheckCircle2,
   Clock, Plus, Trash2, ArrowLeft, ChevronLeft, ChevronRight, Home,
-  Maximize2, X, Building2, Ruler, Euro, Calendar, Tag
+  Maximize2, X, Building2, Ruler, Euro, Calendar, Tag, PanelRightClose, PanelRightOpen
 } from 'lucide-react'
 import Link from 'next/link'
 import dynamic from 'next/dynamic'
@@ -145,6 +145,7 @@ export default function ListingDetailClient() {
   const [newNote, setNewNote] = useState('')
   const [newTask, setNewTask] = useState({ title: '', dueDate: '' })
   const [saving, setSaving] = useState(false)
+  const [showSidebar, setShowSidebar] = useState(true)
 
   async function load() {
     const res = await fetch(`/api/listings/${id}`)
@@ -255,12 +256,17 @@ export default function ListingDetailClient() {
             Ver anúncio
           </a>
         )}
+        <button onClick={() => setShowSidebar(!showSidebar)}
+          title={showSidebar ? 'Ocultar painel' : 'Mostrar painel'}
+          className="p-2 rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-400 hover:text-white transition shrink-0">
+          {showSidebar ? <PanelRightClose className="w-4 h-4" /> : <PanelRightOpen className="w-4 h-4" />}
+        </button>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div className={`grid grid-cols-1 ${showSidebar ? 'lg:grid-cols-3' : ''} gap-8`}>
 
         {/* Coluna principal */}
-        <div className="lg:col-span-2 space-y-6">
+        <div className={`${showSidebar ? 'lg:col-span-2' : ''} space-y-6`}>
 
           {/* Preço em destaque */}
           <div>
@@ -444,6 +450,7 @@ export default function ListingDetailClient() {
         </div>
 
         {/* Sidebar */}
+        {showSidebar && (
         <div className="space-y-4">
 
           {/* Pipeline */}
@@ -514,6 +521,7 @@ export default function ListingDetailClient() {
           )}
 
         </div>
+        )}
       </div>
     </div>
   )

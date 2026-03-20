@@ -135,9 +135,18 @@ async function processImages(images: string[], sourceId: string): Promise<string
 
 // ── Processar um item ────────────────────────────────────────────────────────
 async function processItem(item: z.infer<typeof IngestItemSchema>, ingestRunId: string) {
-  const businessType = normalizeBusinessType(item.businessType)
+  let businessType = normalizeBusinessType(item.businessType)
   const propertyType = normalizePropertyType(item.propertyType)
   const dedupeHash = generateDedupeHash(item)
+
+  // Correcção automática: preço < 10.000€ classificado como "buy" é quase certo arrendamento
+  if (businessType === 'buy' && item.priceEur && item.priceEur < 10000) {
+    businessType = 'rent'
+  }
+  // Correcção inversa: preço >= 50.000€ classificado como "rent" é quase certo compra
+  if (businessType === 'rent' && item.priceEur && item.priceEur >= 50000) {
+    businessType = 'buy'
+  }
 
   // ── Validação de qualidade mínima ────────────────────────────────────────
   const qualityErrors: string[] = []
