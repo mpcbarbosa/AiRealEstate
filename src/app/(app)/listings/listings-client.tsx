@@ -114,14 +114,9 @@ function ListingCard({ listing, onPipeline }: { listing: any; onPipeline: (id: s
                 {listing.hasElevator ? '🛗 Elevador' : '🚫 S/ elevador'}
               </span>
             )}
-            {listing.parkingSpaces != null && listing.parkingSpaces > 0 && (
-              <span className="text-xs bg-gray-800 text-gray-400 px-1.5 py-0.5 rounded">
-                🅿️ {listing.parkingSpaces} {listing.parkingSpaces === 1 ? 'lugar' : 'lugares'}
-              </span>
-            )}
-            {listing.parkingSpaces === 0 && (
-              <span className="text-xs bg-red-500/10 text-red-400 px-1.5 py-0.5 rounded">
-                🅿️ S/ garagem
+            {listing.parkingSpaces != null && (
+              <span className={`text-xs px-1.5 py-0.5 rounded ${listing.parkingSpaces > 0 ? 'bg-green-500/10 text-green-400' : 'bg-red-500/10 text-red-400'}`}>
+                {listing.parkingSpaces > 0 ? `🅿️ ${listing.parkingSpaces} ${listing.parkingSpaces === 1 ? 'lugar' : 'lugares'}` : '🅿️ S/ garagem'}
               </span>
             )}
           </div>

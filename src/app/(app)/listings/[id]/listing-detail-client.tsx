@@ -297,14 +297,9 @@ export default function ListingDetailClient() {
                 {listing.hasElevator ? '🛗 Com elevador' : '🚫 Sem elevador'}
               </span>
             )}
-            {listing.parkingSpaces != null && listing.parkingSpaces > 0 && (
-              <span className="bg-gray-800 text-white text-sm font-medium px-3 py-1.5 rounded-lg">
-                🅿️ {listing.parkingSpaces} {listing.parkingSpaces === 1 ? 'lugar' : 'lugares'}
-              </span>
-            )}
-            {listing.parkingSpaces === 0 && (
-              <span className="bg-red-500/15 text-red-400 text-sm font-medium px-3 py-1.5 rounded-lg">
-                🅿️ Sem garagem
+            {listing.parkingSpaces != null && (
+              <span className={`text-sm font-medium px-3 py-1.5 rounded-lg ${listing.parkingSpaces > 0 ? 'bg-green-500/15 text-green-400' : 'bg-red-500/15 text-red-400'}`}>
+                {listing.parkingSpaces > 0 ? `🅿️ ${listing.parkingSpaces} ${listing.parkingSpaces === 1 ? 'lugar' : 'lugares'}` : '🅿️ Sem garagem'}
               </span>
             )}
             {listing.propertyType && <span className="bg-gray-800 text-gray-300 text-sm px-3 py-1.5 rounded-lg">{PROPERTY_TYPE_LABELS[listing.propertyType]}</span>}
