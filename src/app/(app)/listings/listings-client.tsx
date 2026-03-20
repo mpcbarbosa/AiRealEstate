@@ -2,7 +2,7 @@
 import LocationFilter, { LocationSelection } from '@/components/ui/location-filter'
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { useSearchParams } from 'next/navigation'
-import { formatPrice, formatArea, PIPELINE_LABELS, PROPERTY_TYPE_LABELS, BUSINESS_TYPE_LABELS } from '@/lib/utils'
+import { formatPrice, formatArea, displayTitle, PIPELINE_LABELS, PROPERTY_TYPE_LABELS, BUSINESS_TYPE_LABELS } from '@/lib/utils'
 import { MapPin, Home, Filter, LayoutGrid, LayoutList, Map, Star, Phone, RefreshCw, ExternalLink } from 'lucide-react'
 import Link from 'next/link'
 import dynamic from 'next/dynamic'
@@ -72,7 +72,7 @@ function ListingCard({ listing, onPipeline }: { listing: any; onPipeline: (id: s
       <div className="p-4">
         <div className="flex items-start justify-between gap-2 mb-1">
           <h3 className="text-sm font-medium text-white line-clamp-1 flex-1">
-            {listing.title || 'Sem título'}
+            {displayTitle(listing)}
           </h3>
           <PipelineBadge status={userListing?.status} />
         </div>

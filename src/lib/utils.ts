@@ -72,3 +72,19 @@ export const PROPERTY_TYPE_LABELS: Record<string, string> = {
   building: 'Edifício',
   other: 'Outro',
 }
+
+// Deteta títulos que são códigos de referência (ex: "C0467-01127", "KWPT-026342")
+// e gera um título legível a partir dos campos do listing
+export function displayTitle(listing: { title?: string | null, propertyType?: string | null, typology?: string | null, locationConcelho?: string | null, locationFreguesia?: string | null, locationText?: string | null }): string {
+  const title = listing.title?.trim()
+  if (title && !/^[A-Z0-9]{1,10}[-\/][A-Z0-9]{3,}$/i.test(title)) {
+    return title
+  }
+  // Título parece referência ou está vazio — construir alternativa
+  const parts: string[] = []
+  if (listing.propertyType) parts.push(PROPERTY_TYPE_LABELS[listing.propertyType] || listing.propertyType)
+  if (listing.typology) parts.push(listing.typology)
+  const loc = listing.locationFreguesia || listing.locationConcelho || listing.locationText
+  if (loc) parts.push(`em ${loc}`)
+  return parts.length > 0 ? parts.join(' ') : 'Sem título'
+}

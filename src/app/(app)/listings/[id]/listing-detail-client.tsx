@@ -2,7 +2,7 @@
 import { proxyImageUrls } from '@/lib/image-proxy'
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { formatPrice, formatArea, formatDate, PIPELINE_LABELS, PROPERTY_TYPE_LABELS, BUSINESS_TYPE_LABELS } from '@/lib/utils'
+import { formatPrice, formatArea, formatDate, displayTitle, PIPELINE_LABELS, PROPERTY_TYPE_LABELS, BUSINESS_TYPE_LABELS } from '@/lib/utils'
 import {
   MapPin, ExternalLink, Star, Phone, PhoneCall, XCircle, CheckCircle2,
   Clock, Plus, Trash2, ArrowLeft, ChevronLeft, ChevronRight, Home,
@@ -241,7 +241,7 @@ export default function ListingDetailClient() {
           <ArrowLeft className="w-4 h-4" />
         </button>
         <div className="flex-1 min-w-0">
-          <h1 className="text-xl font-bold text-white leading-tight">{listing.title || 'Sem título'}</h1>
+          <h1 className="text-xl font-bold text-white leading-tight">{displayTitle(listing)}</h1>
           {listing.locationText && (
             <p className="text-sm text-gray-400 flex items-center gap-1 mt-0.5">
               <MapPin className="w-3.5 h-3.5 shrink-0" />{listing.locationText}
