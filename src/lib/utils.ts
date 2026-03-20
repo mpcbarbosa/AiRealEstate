@@ -77,10 +77,15 @@ export const PROPERTY_TYPE_LABELS: Record<string, string> = {
 // e gera um título legível a partir dos campos do listing
 export function displayTitle(listing: { title?: string | null, propertyType?: string | null, typology?: string | null, locationConcelho?: string | null, locationFreguesia?: string | null, locationText?: string | null }): string {
   const title = listing.title?.trim()
-  if (title && !/^[A-Z0-9]{1,10}[-\/][A-Z0-9]{3,}$/i.test(title)) {
-    return title
+  const isJunk = !title
+    || /^[A-Z0-9]{1,10}[-\/][A-Z0-9]{3,}$/i.test(title)  // C0467-01127, KWPT-026342
+    || /^URL\s*\d+$/i.test(title)                           // URL 1, URL 2
+    || /^(ref|id|cod|code|listing)[\s.:_-]*\d+$/i.test(title) // Ref 123, ID-456
+    || title.length <= 4                                     // títulos demasiado curtos
+  if (!isJunk) {
+    return title!
   }
-  // Título parece referência ou está vazio — construir alternativa
+  // Título é lixo ou está vazio — construir alternativa
   const parts: string[] = []
   if (listing.propertyType) parts.push(PROPERTY_TYPE_LABELS[listing.propertyType] || listing.propertyType)
   if (listing.typology) parts.push(listing.typology)

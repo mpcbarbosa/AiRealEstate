@@ -116,6 +116,7 @@ Para cada URL aceite, extrair e normalizar:
 - O `title` deve ser o **título descritivo** do anúncio tal como aparece no portal
 - Exemplos válidos: "Apartamento T3 com vista rio em Gaia", "Moradia T4 com jardim em Cascais"
 - ⚠️ **Nunca usar códigos de referência como título** — códigos como "C0467-01127", "KWPT-026342", "IMV-123456" pertencem ao campo `sourceReference`, não ao `title`
+- ⚠️ **Nunca usar identificadores internos como título** — textos como "URL 1", "URL 2", "Listing 3", "Result 5" são identificadores internos do agente e NUNCA devem ser enviados como `title`
 - Se o portal mostrar apenas a referência como título (ex: Century 21), procurar o título real na descrição, breadcrumb, ou construir a partir do tipo+tipologia+localização: "Apartamento T2 em Cascais"
 - Se não houver título descritivo em lado nenhum, enviar `null` — o ImoRadar gera um título a partir dos outros campos
 
